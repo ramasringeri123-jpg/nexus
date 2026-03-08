@@ -15,7 +15,7 @@ export default function StudyReels() {
     setLoading(true);
     setVideoUrl(null);
 
-    const res = await fetch("http://localhost:5000/generate-video", {
+    const res = await fetch("https://nexus-api-q4u2.onrender.com", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -35,20 +35,21 @@ export default function StudyReels() {
 
   /* NEXT VIDEO */
 
-  const loadNext = async () => {
+const loadNext = async () => {
 
-    setLoading(true);
+  setLoading(true);
 
-    const res = await fetch("http://localhost:5000/reels");
-    const data = await res.json();
+  const res = await fetch(`https://nexus-api-q4u2.onrender.com/reels?topic=${encodeURIComponent(topic)}`);
 
-    if (data.reels.length > 0) {
-      setVideoUrl(data.reels[0].videoUrl);
-    }
+  const data = await res.json();
 
-    setLoading(false);
+  if (data.reels && data.reels.length > 0) {
+    setVideoUrl(data.reels[0].videoUrl);
+  }
 
-  };
+  setLoading(false);
+
+};
 
   return (
 

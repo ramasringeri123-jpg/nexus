@@ -21,7 +21,7 @@ export default function AIChat() {
 
     try {
 
-      const res = await fetch("http://localhost:5000/techbot", {
+      const res = await fetch("https://nexus-api-q4u2.onrender.com", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
