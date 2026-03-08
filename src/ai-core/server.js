@@ -309,33 +309,36 @@ app.post("/techbot", async (req, res) => {
     const { message } = req.body;
 
     if (!message) {
-      return res.status(400).json({ reply: "Message is required" });
+      return res.json({
+        reply: "Ask me something!"
+      });
     }
 
-    const completion = await openai.chat.completions.create({
+    console.log("User message:", message);
 
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-
       messages: [
         {
           role: "system",
-          content: "You are an AI tutor helping students."
+          content: "You are a helpful AI tutor for students."
         },
         {
           role: "user",
           content: message
         }
       ]
-
     });
 
+    const reply = response.choices?.[0]?.message?.content || "No response.";
+
     res.json({
-      reply: completion.choices[0].message.content
+      reply
     });
 
   } catch (error) {
 
-    console.error("TechBot error:", error);
+    console.error("TECHBOT ERROR FULL:", error);
 
     res.status(500).json({
       reply: "TechBot server error."
@@ -344,7 +347,6 @@ app.post("/techbot", async (req, res) => {
   }
 
 });
-
 /* ===============================
 ROOT ROUTE
 =============================== */
