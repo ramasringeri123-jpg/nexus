@@ -290,43 +290,47 @@ app.post("/generate-image", async (req, res) => {
 
 });
 /* ===============================
-TECHBOT
+TECHBOT (HTTP METHOD FIX)
 =============================== */
+
+import axios from "axios";
 
 app.post("/techbot", async (req, res) => {
 
   try {
 
-    const message = req.body?.message;
+    const message = req.body.message;
 
     if (!message) {
       return res.json({
-        reply: "Please ask something."
+        reply: "Ask me something."
       });
     }
 
-    console.log("TechBot request:", message);
-
-    const completion = await openai.chat.completions.create({
-
-      model: "gpt-4o-mini",
-
-      messages: [
-        {
-          role: "system",
-          content: "You are TechBot, a helpful AI tutor for students."
-        },
-        {
-          role: "user",
-          content: message
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are TechBot, an AI tutor helping students."
+          },
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
         }
-      ],
+      }
+    );
 
-      temperature: 0.7
-
-    });
-
-    const reply = completion.choices?.[0]?.message?.content || "I couldn't generate a response.";
+    const reply = response.data.choices[0].message.content;
 
     res.json({
       reply
@@ -334,7 +338,7 @@ app.post("/techbot", async (req, res) => {
 
   } catch (error) {
 
-    console.error("TECHBOT ERROR FULL:", error);
+    console.error("TECHBOT AXIOS ERROR:", error.response?.data || error);
 
     res.status(500).json({
       reply: "TechBot server error."
