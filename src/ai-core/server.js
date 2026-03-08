@@ -316,21 +316,12 @@ app.post("/techbot", async (req, res) => {
 
     console.log("User message:", message);
 
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful AI tutor for students."
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ]
+      input: message
     });
 
-    const reply = response.choices?.[0]?.message?.content || "No response.";
+    const reply = response.output_text || "No response.";
 
     res.json({
       reply
@@ -338,7 +329,7 @@ app.post("/techbot", async (req, res) => {
 
   } catch (error) {
 
-    console.error("TECHBOT ERROR FULL:", error);
+    console.error("TECHBOT ERROR:", error);
 
     res.status(500).json({
       reply: "TechBot server error."
@@ -347,14 +338,6 @@ app.post("/techbot", async (req, res) => {
   }
 
 });
-/* ===============================
-ROOT ROUTE
-=============================== */
-
-app.get("/", (req, res) => {
-  res.send("Nexus AI API is running 🚀");
-});
-
 /* ===============================
 SERVER START
 =============================== */
