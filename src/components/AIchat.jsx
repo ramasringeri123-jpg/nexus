@@ -1,48 +1,85 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { API } from "../services/api";
 
 export default function AIChat() {
 
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const chatRef = useRef(null);
+
+  /* AUTO SCROLL */
+
+  useEffect(() => {
+
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+
+  }, [chat]);
+
+  /* SEND MESSAGE */
 
   const sendMessage = async () => {
 
-    if (!message.trim()) return;
+    if (!message.trim() || loading) return;
 
     const userText = message;
 
-    setChat((prev) => [
+    setChat(prev => [
       ...prev,
       { role: "user", text: userText }
     ]);
 
     setMessage("");
+    setLoading(true);
 
     try {
 
-      const res = await fetch("https://nexus-api-q4u2.onrender.com", {
+      const res = await fetch(API.techbot, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ message: userText })
+        body: JSON.stringify({
+          message: userText
+        })
       });
+
+      if (!res.ok) {
+        throw new Error("Server error");
+      }
 
       const data = await res.json();
 
-      setChat((prev) => [
+      setChat(prev => [
         ...prev,
-        { role: "bot", text: data.reply }
+        { role: "bot", text: data.reply || "No response." }
       ]);
 
     } catch (error) {
 
-      setChat((prev) => [
+      console.error(error);
+
+      setChat(prev => [
         ...prev,
         { role: "bot", text: "TechBot server error." }
       ]);
 
+    }
+
+    setLoading(false);
+
+  };
+
+  /* ENTER KEY SUPPORT */
+
+  const handleKey = (e) => {
+
+    if (e.key === "Enter") {
+      sendMessage();
     }
 
   };
@@ -120,6 +157,7 @@ export default function AIChat() {
           {/* Messages */}
 
           <div
+            ref={chatRef}
             style={{
               flex: 1,
               padding: "10px",
@@ -149,6 +187,12 @@ export default function AIChat() {
 
             ))}
 
+            {loading && (
+              <div style={{ color: "#9ca3af" }}>
+                TechBot is typing...
+              </div>
+            )}
+
           </div>
 
           {/* Input */}
@@ -158,6 +202,7 @@ export default function AIChat() {
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKey}
               placeholder="Ask something..."
               style={{
                 flex: 1,
@@ -170,6 +215,7 @@ export default function AIChat() {
 
             <button
               onClick={sendMessage}
+              disabled={loading}
               style={{
                 padding: "10px 14px",
                 border: "none",

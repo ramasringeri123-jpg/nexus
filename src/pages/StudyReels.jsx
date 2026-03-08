@@ -1,5 +1,5 @@
 import { API } from "../services/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function StudyReels() {
 
@@ -7,12 +7,43 @@ export default function StudyReels() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [timeLeft, setTimeLeft] = useState(35);
+
+  /* TIMER */
+
+  useEffect(() => {
+
+    if (!loading) return;
+
+    setTimeLeft(35);
+
+    const timer = setInterval(() => {
+
+      setTimeLeft(prev => {
+
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+
+        return prev - 1;
+
+      });
+
+    }, 1000);
+
+    return () => clearInterval(timer);
+
+  }, [loading]);
 
   /* GENERATE VIDEO */
 
   const generateVideo = async () => {
 
-    if (!topic) return;
+    if (!topic.trim()) {
+      setError("Please enter a topic.");
+      return;
+    }
 
     setLoading(true);
     setVideoUrl(null);
@@ -27,6 +58,10 @@ export default function StudyReels() {
         },
         body: JSON.stringify({ topic })
       });
+
+      if (!res.ok) {
+        throw new Error("Server response error");
+      }
 
       const data = await res.json();
 
@@ -57,6 +92,10 @@ export default function StudyReels() {
     try {
 
       const res = await fetch(API.reels);
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch reels");
+      }
 
       const data = await res.json();
 
@@ -149,6 +188,13 @@ export default function StudyReels() {
           <p>🧠 Writing script...</p>
           <p>🖼 Generating images...</p>
           <p>🎞 Building final reel...</p>
+
+          <p style={{
+            marginTop: "10px",
+            color: "#22c55e"
+          }}>
+            ⏳ Estimated time: {timeLeft}s
+          </p>
 
         </div>
 
