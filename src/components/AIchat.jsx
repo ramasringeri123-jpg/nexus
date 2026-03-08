@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { API } from "../services/api";
 
 export default function AIChat() {
@@ -6,35 +6,19 @@ export default function AIChat() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const chatRef = useRef(null);
-
-  /* AUTO SCROLL */
-
-  useEffect(() => {
-
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-
-  }, [chat]);
-
-  /* SEND MESSAGE */
 
   const sendMessage = async () => {
 
-    if (!message.trim() || loading) return;
+    if (!message.trim()) return;
 
     const userText = message;
 
-    setChat(prev => [
+    setChat((prev) => [
       ...prev,
       { role: "user", text: userText }
     ]);
 
     setMessage("");
-    setLoading(true);
 
     try {
 
@@ -43,51 +27,29 @@ export default function AIChat() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          message: userText
-        })
+        body: JSON.stringify({ message: userText })
       });
-
-      if (!res.ok) {
-        throw new Error("Server error");
-      }
 
       const data = await res.json();
 
-      setChat(prev => [
+      setChat((prev) => [
         ...prev,
-        { role: "bot", text: data.reply || "No response." }
+        { role: "bot", text: data.reply }
       ]);
 
     } catch (error) {
 
-      console.error(error);
-
-      setChat(prev => [
+      setChat((prev) => [
         ...prev,
         { role: "bot", text: "TechBot server error." }
       ]);
 
     }
 
-    setLoading(false);
-
-  };
-
-  /* ENTER KEY SUPPORT */
-
-  const handleKey = (e) => {
-
-    if (e.key === "Enter") {
-      sendMessage();
-    }
-
   };
 
   return (
     <div>
-
-      {/* Floating button */}
 
       {!open && (
         <button
@@ -101,16 +63,12 @@ export default function AIChat() {
             border: "none",
             background: "linear-gradient(90deg,#6366f1,#9333ea)",
             color: "white",
-            fontWeight: "600",
-            cursor: "pointer",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.4)"
+            cursor: "pointer"
           }}
         >
           🤖 TechBot
         </button>
       )}
-
-      {/* Chat window */}
 
       {open && (
         <div
@@ -123,12 +81,9 @@ export default function AIChat() {
             background: "#0f172a",
             borderRadius: "12px",
             display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.6)"
+            flexDirection: "column"
           }}
         >
-
-          {/* Header */}
 
           <div
             style={{
@@ -154,16 +109,12 @@ export default function AIChat() {
             </button>
           </div>
 
-          {/* Messages */}
-
           <div
-            ref={chatRef}
             style={{
               flex: 1,
               padding: "10px",
               overflowY: "auto",
-              color: "white",
-              fontSize: "14px"
+              color: "white"
             }}
           >
 
@@ -187,22 +138,13 @@ export default function AIChat() {
 
             ))}
 
-            {loading && (
-              <div style={{ color: "#9ca3af" }}>
-                TechBot is typing...
-              </div>
-            )}
-
           </div>
 
-          {/* Input */}
-
-          <div style={{ display: "flex", borderTop: "1px solid #1e293b" }}>
+          <div style={{ display: "flex" }}>
 
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKey}
               placeholder="Ask something..."
               style={{
                 flex: 1,
@@ -215,7 +157,6 @@ export default function AIChat() {
 
             <button
               onClick={sendMessage}
-              disabled={loading}
               style={{
                 padding: "10px 14px",
                 border: "none",

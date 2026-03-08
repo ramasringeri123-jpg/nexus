@@ -1,5 +1,4 @@
-import { API } from "../services/api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function StudyReels() {
 
@@ -7,63 +6,49 @@ export default function StudyReels() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(35);
+  const [eta, setEta] = useState(0);
 
-  /* TIMER */
-
-  useEffect(() => {
-
-    if (!loading) return;
-
-    setTimeLeft(35);
-
-    const timer = setInterval(() => {
-
-      setTimeLeft(prev => {
-
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-
-        return prev - 1;
-
-      });
-
-    }, 1000);
-
-    return () => clearInterval(timer);
-
-  }, [loading]);
-
-  /* GENERATE VIDEO */
+  /* ===============================
+  GENERATE VIDEO
+  =============================== */
 
   const generateVideo = async () => {
 
-    if (!topic.trim()) {
-      setError("Please enter a topic.");
-      return;
-    }
+    if (!topic.trim()) return;
 
     setLoading(true);
-    setVideoUrl(null);
     setError("");
+    setVideoUrl(null);
+
+    /* estimated timer for user */
+
+    let seconds = 35;
+    setEta(seconds);
+
+    const timer = setInterval(() => {
+      seconds--;
+      setEta(seconds);
+
+      if (seconds <= 0) clearInterval(timer);
+    }, 1000);
 
     try {
 
-      const res = await fetch(API.generateVideo, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ topic })
-      });
-
-      if (!res.ok) {
-        throw new Error("Server response error");
-      }
+      const res = await fetch(
+        "https://nexus-api-q4u2.onrender.com/generate-video",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ topic })
+        }
+      );
 
       const data = await res.json();
+
+      clearInterval(timer);
+      setEta(0);
 
       if (data.videoUrl) {
         setVideoUrl(data.videoUrl);
@@ -82,7 +67,9 @@ export default function StudyReels() {
 
   };
 
-  /* LOAD NEXT VIDEO */
+  /* ===============================
+  LOAD NEXT VIDEO
+  =============================== */
 
   const loadNext = async () => {
 
@@ -91,18 +78,16 @@ export default function StudyReels() {
 
     try {
 
-      const res = await fetch(API.reels);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch reels");
-      }
+      const res = await fetch(
+        "https://nexus-api-q4u2.onrender.com/reels"
+      );
 
       const data = await res.json();
 
       if (data.reels && data.reels.length > 0) {
         setVideoUrl(data.reels[0].videoUrl);
       } else {
-        setError("Next video is still rendering...");
+        setError("Next reel still rendering...");
       }
 
     } catch (err) {
@@ -116,29 +101,41 @@ export default function StudyReels() {
 
   };
 
+  /* ===============================
+  UI
+  =============================== */
+
   return (
 
-    <div style={{ padding: "30px" }}>
-
-      <h1 style={{
-        fontSize: "34px",
-        marginBottom: "20px",
+    <div
+      style={{
+        padding: "40px",
         color: "white"
-      }}>
+      }}
+    >
+
+      <h1
+        style={{
+          fontSize: "34px",
+          marginBottom: "20px"
+        }}
+      >
         AI Study Reels
       </h1>
 
-      {/* INPUT + BUTTON */}
+      {/* INPUT */}
 
-      <div style={{
-        display: "flex",
-        gap: "15px",
-        alignItems: "center"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "15px",
+          marginBottom: "20px"
+        }}
+      >
 
         <input
           type="text"
-          placeholder="Enter topic (example: Quantum Physics)"
+          placeholder="Enter topic (example: Neural Network)"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           style={{
@@ -148,7 +145,6 @@ export default function StudyReels() {
             border: "1px solid #333",
             background: "#0f172a",
             color: "white",
-            outline: "none",
             fontSize: "16px"
           }}
         />
@@ -175,26 +171,25 @@ export default function StudyReels() {
 
       {loading && (
 
-        <div style={{
-          marginTop: "30px",
-          background: "#111827",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "420px",
-          color: "#d1d5db"
-        }}>
+        <div
+          style={{
+            background: "#111827",
+            padding: "20px",
+            borderRadius: "10px",
+            width: "420px"
+          }}
+        >
 
           <p>🎬 Rendering video...</p>
           <p>🧠 Writing script...</p>
           <p>🖼 Generating images...</p>
           <p>🎞 Building final reel...</p>
 
-          <p style={{
-            marginTop: "10px",
-            color: "#22c55e"
-          }}>
-            ⏳ Estimated time: {timeLeft}s
-          </p>
+          {eta > 0 && (
+            <p style={{ marginTop: "10px", color: "#9ca3af" }}>
+              Estimated time: {eta}s
+            </p>
+          )}
 
         </div>
 
@@ -204,10 +199,12 @@ export default function StudyReels() {
 
       {error && (
 
-        <div style={{
-          marginTop: "20px",
-          color: "#ef4444"
-        }}>
+        <div
+          style={{
+            marginTop: "20px",
+            color: "#ef4444"
+          }}
+        >
           {error}
         </div>
 
