@@ -4,7 +4,6 @@ import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
-import axios from "axios";
 
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
@@ -16,13 +15,13 @@ app.use(cors());
 app.use(express.json());
 
 /* ===============================
-PORT (Render compatible)
+PORT
 =============================== */
 
 const PORT = process.env.PORT || 10000;
 
 /* ===============================
-OPENAI
+OPENAI CLIENT
 =============================== */
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -32,7 +31,9 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const openai = new OpenAI({ apiKey });
+const openai = new OpenAI({
+  apiKey
+});
 
 /* ===============================
 PATH SETUP
@@ -46,11 +47,11 @@ const tempDir = path.join(__dirname, "temp");
 app.use("/videos", express.static(tempDir));
 
 /* ===============================
-ROOT ROUTE
+ROOT
 =============================== */
 
 app.get("/", (req, res) => {
-  res.send("🚀 Nexus AI API is running");
+  res.send("🚀 Nexus AI API running");
 });
 
 /* ===============================
@@ -68,13 +69,13 @@ MEMORY STORAGE
 const reelLibrary = [];
 const imageUsage = {};
 
+/* ===============================
+HELPERS
+=============================== */
+
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
-
-/* ===============================
-SAFE JSON PARSER
-=============================== */
 
 function cleanJSON(text) {
 
@@ -112,9 +113,9 @@ async function generateImagesFast(scenes) {
         img = await generateImage(scene.visual, i);
         break;
 
-      } catch {
+      } catch (err) {
 
-        console.log("Retry image...", i);
+        console.log("Retry image", i);
         await new Promise(r => setTimeout(r, 2000));
 
       }
@@ -158,11 +159,15 @@ app.post("/generate-video", async (req, res) => {
 Generate a 60 second educational video.
 
 Rules:
-- Exactly 6 scenes
-- Each scene about 10 seconds
-- Each scene includes visual + narration
+- exactly 6 scenes
+- each scene ≈ 10 seconds
+- return JSON array
 
-Return JSON only.
+Example:
+
+[
+ {"visual":"...","narration":"..."}
+]
 `
         },
         {
@@ -194,6 +199,7 @@ Return JSON only.
     });
 
     const images = await generateImagesFast(scenes);
+
     const voice = await generateVoice(narration);
 
     const videoName = await buildVideo(images, voice);
@@ -212,9 +218,9 @@ Return JSON only.
 
     res.json({ videoUrl });
 
-  } catch (error) {
+  } catch (err) {
 
-    console.error("VIDEO ERROR:", error);
+    console.error("VIDEO ERROR:", err);
 
     res.status(500).json({
       error: "Video generation failed"
@@ -274,9 +280,11 @@ app.post("/generate-image", async (req, res) => {
     imageUsage[ip].count++;
 
     const result = await openai.images.generate({
+
       model: "gpt-image-1",
       prompt,
       size: "1024x1024"
+
     });
 
     const image =
@@ -284,9 +292,9 @@ app.post("/generate-image", async (req, res) => {
 
     res.json({ image });
 
-  } catch (error) {
+  } catch (err) {
 
-    console.error("IMAGE ERROR:", error);
+    console.error("IMAGE ERROR:", err);
 
     res.status(500).json({
       error: "Image generation failed"
@@ -297,7 +305,7 @@ app.post("/generate-image", async (req, res) => {
 });
 
 /* ===============================
-TECHBOT (PERMANENT FIX)
+TECHBOT
 =============================== */
 
 app.post("/techbot", async (req, res) => {
@@ -319,7 +327,7 @@ app.post("/techbot", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "You are TechBot, an AI tutor helping students understand concepts clearly."
+          content: "You are TechBot, a helpful AI tutor."
         },
         {
           role: "user",
@@ -335,9 +343,9 @@ app.post("/techbot", async (req, res) => {
 
     res.json({ reply });
 
-  } catch (error) {
+  } catch (err) {
 
-    console.error("TECHBOT ERROR:", error);
+    console.error("TECHBOT ERROR:", err);
 
     res.status(500).json({
       reply: "TechBot server error."
