@@ -24,8 +24,15 @@ const PORT = process.env.PORT || 10000;
 OPENAI
 =============================== */
 
+const apiKey = process.env.OPENAI_API_KEY;
+
+if (!apiKey) {
+  console.error("❌ OPENAI_API_KEY is missing. Check Render environment variables.");
+  process.exit(1);
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey
 });
 
 /* ===============================
