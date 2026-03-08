@@ -1,45 +1,32 @@
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY || "PASTE_YOUR_OPENAI_KEY_HERE"
 });
 
 export async function generateImage(prompt, index) {
 
-  try {
+  const result = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt: prompt,
+    size: "1024x1024"
+  });
 
-    const result = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt: prompt,
-      size: "1024x1024"
-    });
+  const imageBase64 = result.data[0].b64_json;
+  const imageBuffer = Buffer.from(imageBase64, "base64");
 
-    const imageBase64 = result.data[0].b64_json;
+  const filePath = path.join(__dirname, "temp", `scene_${index}.png`);
 
-    const buffer = Buffer.from(imageBase64, "base64");
+  fs.writeFileSync(filePath, imageBuffer);
 
-    const folder = "./temp";
+  console.log("✅ Image created:", filePath);
 
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder);
-    }
-
-    const filePath = `${folder}/scene_${index}.png`;
-
-    fs.writeFileSync(filePath, buffer);
-
-    console.log("✅ Image created:", filePath);
-
-    return filePath;
-
-  } catch (error) {
-
-    console.error("❌ Image generation failed:", error);
-
-    throw error;
-
-  }
+  return filePath;
 
 }
