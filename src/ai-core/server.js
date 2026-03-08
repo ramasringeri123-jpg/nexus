@@ -10,10 +10,19 @@ import { generateVoice } from "./voiceGenerator.js";
 import { buildVideo } from "./videoBuilder.js";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-const PORT = 5000;
+/* ===============================
+PORT FIX (RENDER)
+=============================== */
+
+const PORT = process.env.PORT || 5000;
+
+/* ===============================
+OPENAI
+=============================== */
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -27,6 +36,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use("/videos", express.static(path.join(__dirname, "temp")));
+
+/* ===============================
+RENDER HEALTH CHECK
+=============================== */
+
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
 
 /* ===============================
 MEMORY STORAGE
@@ -59,6 +76,7 @@ function cleanJSON(text) {
   }
 
   return JSON.parse(text.substring(start, end + 1));
+
 }
 
 /* ===============================
@@ -72,21 +90,16 @@ async function generateImagesFast(scenes) {
   for (let i = 0; i < scenes.length; i++) {
 
     const scene = scenes[i];
-
     let img;
 
     for (let retry = 0; retry < 2; retry++) {
 
       try {
-
         img = await generateImage(scene.visual, i);
         break;
-
       } catch (err) {
-
         console.log("Retry image...", i);
         await new Promise(r => setTimeout(r, 2000));
-
       }
 
     }
@@ -104,7 +117,7 @@ async function generateImagesFast(scenes) {
 }
 
 /* ===============================
-VIDEO GENERATOR (60s)
+VIDEO GENERATOR
 =============================== */
 
 app.post("/generate-video", async (req, res) => {
@@ -148,8 +161,6 @@ Return ONLY JSON like:
       completion.choices[0].message.content
     );
 
-    /* ensure exactly 6 scenes */
-
     if (scenes.length < 6) {
       while (scenes.length < 6) {
         scenes.push(scenes[scenes.length - 1]);
@@ -160,27 +171,21 @@ Return ONLY JSON like:
       scenes.length = 6;
     }
 
-    /* narration */
-
     let narration = "";
 
     scenes.forEach(scene => {
       narration += scene.narration + " ";
     });
 
-    /* images */
-
     const images = await generateImagesFast(scenes);
-
-    /* voice */
 
     const voice = await generateVoice(narration);
 
-    /* video */
-
     const videoName = await buildVideo(images, voice);
 
-    const videoUrl = `http://localhost:${PORT}/videos/${videoName}`;
+    /* IMPORTANT: dynamic host */
+
+    const videoUrl = `${req.protocol}://${req.get("host")}/videos/${videoName}`;
 
     const reel = {
       id: Date.now(),
@@ -316,7 +321,5 @@ SERVER START
 =============================== */
 
 app.listen(PORT, () => {
-
-  console.log(`🚀 AI Server running on http://localhost:${PORT}`);
-
+  console.log(`🚀 AI Server running on port ${PORT}`);
 });
