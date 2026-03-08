@@ -15,10 +15,10 @@ app.use(cors());
 app.use(express.json());
 
 /* ===============================
-PORT FIX (RENDER)
+PORT (RENDER FIX)
 =============================== */
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 /* ===============================
 OPENAI
@@ -35,7 +35,9 @@ PATH SETUP
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use("/videos", express.static(path.join(__dirname, "temp")));
+const tempDir = path.join(__dirname, "temp");
+
+app.use("/videos", express.static(tempDir));
 
 /* ===============================
 RENDER HEALTH CHECK
@@ -49,15 +51,12 @@ app.get("/healthz", (req, res) => {
 MEMORY STORAGE
 =============================== */
 
-const usage = {};
 const imageUsage = {};
 const reelLibrary = [];
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
-
-const DEV_MODE = process.env.DEV_MODE === "true";
 
 /* ===============================
 SAFE JSON PARSER
@@ -95,11 +94,15 @@ async function generateImagesFast(scenes) {
     for (let retry = 0; retry < 2; retry++) {
 
       try {
+
         img = await generateImage(scene.visual, i);
         break;
+
       } catch (err) {
+
         console.log("Retry image...", i);
         await new Promise(r => setTimeout(r, 2000));
+
       }
 
     }
@@ -142,7 +145,9 @@ Rules:
 • Each scene ≈ 10 seconds
 • Each narration 2 sentences
 
-Return ONLY JSON like:
+Return ONLY JSON.
+
+Example:
 
 [
  { "visual":"...", "narration":"..." }
@@ -183,9 +188,8 @@ Return ONLY JSON like:
 
     const videoName = await buildVideo(images, voice);
 
-    /* IMPORTANT: dynamic host */
-
-    const videoUrl = `${req.protocol}://${req.get("host")}/videos/${videoName}`;
+    const videoUrl =
+      `${req.protocol}://${req.get("host")}/videos/${videoName}`;
 
     const reel = {
       id: Date.now(),
@@ -244,9 +248,11 @@ app.post("/generate-image", async (req, res) => {
     }
 
     if (imageUsage[ip].count >= 10) {
+
       return res.json({
         error: "Daily free limit reached"
       });
+
     }
 
     imageUsage[ip].count++;
@@ -257,7 +263,8 @@ app.post("/generate-image", async (req, res) => {
       size: "1024x1024"
     });
 
-    const image = `data:image/png;base64,${result.data[0].b64_json}`;
+    const image =
+      `data:image/png;base64,${result.data[0].b64_json}`;
 
     res.json({ image });
 
@@ -320,6 +327,8 @@ app.post("/techbot", async (req, res) => {
 SERVER START
 =============================== */
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
+
   console.log(`🚀 AI Server running on port ${PORT}`);
+
 });
