@@ -289,7 +289,6 @@ app.post("/generate-image", async (req, res) => {
   }
 
 });
-
 /* ===============================
 TECHBOT
 =============================== */
@@ -298,26 +297,44 @@ app.post("/techbot", async (req, res) => {
 
   try {
 
-    const { message } = req.body;
+    const message = req.body?.message;
 
     if (!message) {
       return res.json({
-        reply: "Ask me something!"
+        reply: "Please ask something."
       });
     }
 
-    const response = await openai.responses.create({
+    console.log("TechBot request:", message);
+
+    const completion = await openai.chat.completions.create({
+
       model: "gpt-4o-mini",
-      input: message
+
+      messages: [
+        {
+          role: "system",
+          content: "You are TechBot, a helpful AI tutor for students."
+        },
+        {
+          role: "user",
+          content: message
+        }
+      ],
+
+      temperature: 0.7
+
     });
 
-    const reply = response.output_text || "No response.";
+    const reply = completion.choices?.[0]?.message?.content || "I couldn't generate a response.";
 
-    res.json({ reply });
+    res.json({
+      reply
+    });
 
   } catch (error) {
 
-    console.error("TECHBOT ERROR:", error);
+    console.error("TECHBOT ERROR FULL:", error);
 
     res.status(500).json({
       reply: "TechBot server error."
