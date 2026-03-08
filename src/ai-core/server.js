@@ -4,6 +4,7 @@ import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
+import axios from "axios";
 
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
@@ -140,6 +141,12 @@ app.post("/generate-video", async (req, res) => {
 
     const { topic } = req.body;
 
+    if (!topic) {
+      return res.status(400).json({
+        error: "Topic required"
+      });
+    }
+
     const completion = await openai.chat.completions.create({
 
       model: "gpt-4o-mini",
@@ -152,16 +159,10 @@ Generate a 60 second educational video.
 
 Rules:
 - Exactly 6 scenes
-- Each scene ~10 seconds
-- Each scene has visual + narration
+- Each scene about 10 seconds
+- Each scene includes visual + narration
 
 Return JSON only.
-
-Example:
-
-[
- { "visual":"...", "narration":"..." }
-]
 `
         },
         {
@@ -193,7 +194,6 @@ Example:
     });
 
     const images = await generateImagesFast(scenes);
-
     const voice = await generateVoice(narration);
 
     const videoName = await buildVideo(images, voice);
@@ -246,6 +246,12 @@ app.post("/generate-image", async (req, res) => {
 
     const { prompt } = req.body;
 
+    if (!prompt) {
+      return res.status(400).json({
+        error: "Prompt required"
+      });
+    }
+
     const ip = req.ip;
     const today = getToday();
 
@@ -289,17 +295,16 @@ app.post("/generate-image", async (req, res) => {
   }
 
 });
-/* ===============================
-TECHBOT (HTTP METHOD FIX)
-=============================== */
 
-import axios from "axios";
+/* ===============================
+TECHBOT (PERMANENT FIX)
+=============================== */
 
 app.post("/techbot", async (req, res) => {
 
   try {
 
-    const message = req.body.message;
+    const { message } = req.body;
 
     if (!message) {
       return res.json({
@@ -307,38 +312,32 @@ app.post("/techbot", async (req, res) => {
       });
     }
 
-    const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are TechBot, an AI tutor helping students."
-          },
-          {
-            role: "user",
-            content: message
-          }
-        ]
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
+    const completion = await openai.chat.completions.create({
+
+      model: "gpt-4o-mini",
+
+      messages: [
+        {
+          role: "system",
+          content: "You are TechBot, an AI tutor helping students understand concepts clearly."
+        },
+        {
+          role: "user",
+          content: message
         }
-      }
-    );
+      ]
 
-    const reply = response.data.choices[0].message.content;
-
-    res.json({
-      reply
     });
+
+    const reply =
+      completion.choices?.[0]?.message?.content ||
+      "No response generated.";
+
+    res.json({ reply });
 
   } catch (error) {
 
-    console.error("TECHBOT AXIOS ERROR:", error.response?.data || error);
+    console.error("TECHBOT ERROR:", error);
 
     res.status(500).json({
       reply: "TechBot server error."
