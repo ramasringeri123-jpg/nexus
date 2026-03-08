@@ -11,20 +11,11 @@ import { buildVideo } from "./videoBuilder.js";
 
 const app = express();
 
-/* ===============================
-CORS (ALLOW FRONTEND)
-=============================== */
-
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
-
-app.use(express.json({ limit: "10mb" }));
+app.use(cors());
+app.use(express.json());
 
 /* ===============================
-PORT (RENDER FIX)
+PORT (Render compatible)
 =============================== */
 
 const PORT = process.env.PORT || 10000;
@@ -36,13 +27,11 @@ OPENAI
 const apiKey = process.env.OPENAI_API_KEY;
 
 if (!apiKey) {
-  console.error("❌ OPENAI_API_KEY is missing. Check Render environment variables.");
+  console.error("❌ OPENAI_API_KEY missing");
   process.exit(1);
 }
 
-const openai = new OpenAI({
-  apiKey
-});
+const openai = new OpenAI({ apiKey });
 
 /* ===============================
 PATH SETUP
@@ -56,19 +45,27 @@ const tempDir = path.join(__dirname, "temp");
 app.use("/videos", express.static(tempDir));
 
 /* ===============================
-RENDER HEALTH CHECK
+ROOT ROUTE
+=============================== */
+
+app.get("/", (req, res) => {
+  res.send("🚀 Nexus AI API is running");
+});
+
+/* ===============================
+HEALTH CHECK
 =============================== */
 
 app.get("/healthz", (req, res) => {
-  res.status(200).send("OK");
+  res.send("OK");
 });
 
 /* ===============================
 MEMORY STORAGE
 =============================== */
 
-const imageUsage = {};
 const reelLibrary = [];
+const imageUsage = {};
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -87,10 +84,11 @@ function cleanJSON(text) {
   const end = text.lastIndexOf("]");
 
   if (start === -1 || end === -1) {
-    throw new Error("AI returned invalid JSON");
+    throw new Error("Invalid JSON from AI");
   }
 
   return JSON.parse(text.substring(start, end + 1));
+
 }
 
 /* ===============================
@@ -113,7 +111,7 @@ async function generateImagesFast(scenes) {
         img = await generateImage(scene.visual, i);
         break;
 
-      } catch (err) {
+      } catch {
 
         console.log("Retry image...", i);
         await new Promise(r => setTimeout(r, 2000));
@@ -122,15 +120,14 @@ async function generateImagesFast(scenes) {
 
     }
 
-    if (!img) {
-      throw new Error("Image generation failed");
-    }
+    if (!img) throw new Error("Image generation failed");
 
     images.push(img);
 
   }
 
   return images;
+
 }
 
 /* ===============================
@@ -143,10 +140,6 @@ app.post("/generate-video", async (req, res) => {
 
     const { topic } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({ error: "Topic is required" });
-    }
-
     const completion = await openai.chat.completions.create({
 
       model: "gpt-4o-mini",
@@ -155,15 +148,16 @@ app.post("/generate-video", async (req, res) => {
         {
           role: "system",
           content: `
-Generate a 60 second educational video script.
+Generate a 60 second educational video.
 
 Rules:
+- Exactly 6 scenes
+- Each scene ~10 seconds
+- Each scene has visual + narration
 
-• EXACTLY 6 scenes
-• Each scene ≈ 10 seconds
-• Each narration 2 sentences
+Return JSON only.
 
-Return ONLY JSON.
+Example:
 
 [
  { "visual":"...", "narration":"..." }
@@ -199,7 +193,9 @@ Return ONLY JSON.
     });
 
     const images = await generateImagesFast(scenes);
+
     const voice = await generateVoice(narration);
+
     const videoName = await buildVideo(images, voice);
 
     const videoUrl =
@@ -218,7 +214,7 @@ Return ONLY JSON.
 
   } catch (error) {
 
-    console.error("Video generation error:", error);
+    console.error("VIDEO ERROR:", error);
 
     res.status(500).json({
       error: "Video generation failed"
@@ -249,10 +245,6 @@ app.post("/generate-image", async (req, res) => {
   try {
 
     const { prompt } = req.body;
-
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
-    }
 
     const ip = req.ip;
     const today = getToday();
@@ -288,7 +280,7 @@ app.post("/generate-image", async (req, res) => {
 
   } catch (error) {
 
-    console.error("Image generation error:", error);
+    console.error("IMAGE ERROR:", error);
 
     res.status(500).json({
       error: "Image generation failed"
@@ -314,8 +306,6 @@ app.post("/techbot", async (req, res) => {
       });
     }
 
-    console.log("User message:", message);
-
     const response = await openai.responses.create({
       model: "gpt-4o-mini",
       input: message
@@ -323,9 +313,7 @@ app.post("/techbot", async (req, res) => {
 
     const reply = response.output_text || "No response.";
 
-    res.json({
-      reply
-    });
+    res.json({ reply });
 
   } catch (error) {
 
@@ -338,12 +326,13 @@ app.post("/techbot", async (req, res) => {
   }
 
 });
+
 /* ===============================
 SERVER START
 =============================== */
 
 app.listen(PORT, "0.0.0.0", () => {
 
-  console.log(`🚀 AI Server running on port ${PORT}`);
+  console.log(`🚀 Nexus AI server running on port ${PORT}`);
 
 });
