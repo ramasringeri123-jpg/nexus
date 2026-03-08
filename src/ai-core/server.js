@@ -334,6 +334,10 @@ app.post("/techbot", async (req, res) => {
 SERVER START
 =============================== */
 
+app.get("/", (req, res) => {
+  res.send("Nexus AI API is running 🚀");
+});
+
 app.listen(PORT, "0.0.0.0", () => {
 
   console.log(`🚀 AI Server running on port ${PORT}`);
