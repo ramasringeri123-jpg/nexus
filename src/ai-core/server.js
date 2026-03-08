@@ -11,8 +11,17 @@ import { buildVideo } from "./videoBuilder.js";
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+/* ===============================
+CORS (ALLOW FRONTEND)
+=============================== */
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.use(express.json({ limit: "10mb" }));
 
 /* ===============================
 PORT (RENDER FIX)
@@ -82,7 +91,6 @@ function cleanJSON(text) {
   }
 
   return JSON.parse(text.substring(start, end + 1));
-
 }
 
 /* ===============================
@@ -123,7 +131,6 @@ async function generateImagesFast(scenes) {
   }
 
   return images;
-
 }
 
 /* ===============================
@@ -135,6 +142,10 @@ app.post("/generate-video", async (req, res) => {
   try {
 
     const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: "Topic is required" });
+    }
 
     const completion = await openai.chat.completions.create({
 
@@ -153,8 +164,6 @@ Rules:
 • Each narration 2 sentences
 
 Return ONLY JSON.
-
-Example:
 
 [
  { "visual":"...", "narration":"..." }
@@ -190,9 +199,7 @@ Example:
     });
 
     const images = await generateImagesFast(scenes);
-
     const voice = await generateVoice(narration);
-
     const videoName = await buildVideo(images, voice);
 
     const videoUrl =
@@ -211,7 +218,7 @@ Example:
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Video generation error:", error);
 
     res.status(500).json({
       error: "Video generation failed"
@@ -242,6 +249,10 @@ app.post("/generate-image", async (req, res) => {
   try {
 
     const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
 
     const ip = req.ip;
     const today = getToday();
@@ -277,7 +288,7 @@ app.post("/generate-image", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Image generation error:", error);
 
     res.status(500).json({
       error: "Image generation failed"
@@ -296,6 +307,10 @@ app.post("/techbot", async (req, res) => {
   try {
 
     const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ reply: "Message is required" });
+    }
 
     const completion = await openai.chat.completions.create({
 
@@ -320,10 +335,10 @@ app.post("/techbot", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("TechBot error:", error);
 
     res.status(500).json({
-      reply: "TechBot failed"
+      reply: "TechBot server error."
     });
 
   }
@@ -331,12 +346,16 @@ app.post("/techbot", async (req, res) => {
 });
 
 /* ===============================
-SERVER START
+ROOT ROUTE
 =============================== */
 
 app.get("/", (req, res) => {
   res.send("Nexus AI API is running 🚀");
 });
+
+/* ===============================
+SERVER START
+=============================== */
 
 app.listen(PORT, "0.0.0.0", () => {
 
