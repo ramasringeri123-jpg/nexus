@@ -1,3 +1,4 @@
+import { API } from "../services/api";
 import { useState } from "react";
 
 export default function StudyReels() {
@@ -5,6 +6,7 @@ export default function StudyReels() {
   const [topic, setTopic] = useState("");
   const [videoUrl, setVideoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   /* GENERATE VIDEO */
 
@@ -14,42 +16,66 @@ export default function StudyReels() {
 
     setLoading(true);
     setVideoUrl(null);
+    setError("");
 
-    const res = await fetch("https://nexus-api-q4u2.onrender.com", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ topic })
-    });
+    try {
 
-    const data = await res.json();
+      const res = await fetch(API.generateVideo, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ topic })
+      });
 
-    if (data.videoUrl) {
-      setVideoUrl(data.videoUrl);
+      const data = await res.json();
+
+      if (data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+      } else {
+        setError("Video generation failed.");
+      }
+
+    } catch (err) {
+
+      console.error(err);
+      setError("Server error. Please try again.");
+
     }
 
     setLoading(false);
 
   };
 
-  /* NEXT VIDEO */
+  /* LOAD NEXT VIDEO */
 
-const loadNext = async () => {
+  const loadNext = async () => {
 
-  setLoading(true);
+    setLoading(true);
+    setError("");
 
-  const res = await fetch(`https://nexus-api-q4u2.onrender.com/reels?topic=${encodeURIComponent(topic)}`);
+    try {
 
-  const data = await res.json();
+      const res = await fetch(API.reels);
 
-  if (data.reels && data.reels.length > 0) {
-    setVideoUrl(data.reels[0].videoUrl);
-  }
+      const data = await res.json();
 
-  setLoading(false);
+      if (data.reels && data.reels.length > 0) {
+        setVideoUrl(data.reels[0].videoUrl);
+      } else {
+        setError("Next video is still rendering...");
+      }
 
-};
+    } catch (err) {
+
+      console.error(err);
+      setError("Failed to load next reel.");
+
+    }
+
+    setLoading(false);
+
+  };
 
   return (
 
@@ -90,6 +116,7 @@ const loadNext = async () => {
 
         <button
           onClick={generateVideo}
+          disabled={loading}
           style={{
             padding: "14px 28px",
             borderRadius: "10px",
@@ -123,6 +150,19 @@ const loadNext = async () => {
           <p>🖼 Generating images...</p>
           <p>🎞 Building final reel...</p>
 
+        </div>
+
+      )}
+
+      {/* ERROR */}
+
+      {error && (
+
+        <div style={{
+          marginTop: "20px",
+          color: "#ef4444"
+        }}>
+          {error}
         </div>
 
       )}
