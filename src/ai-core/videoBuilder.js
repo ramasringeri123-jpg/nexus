@@ -4,7 +4,9 @@ import fs from "fs";
 import ffmpegStatic from "ffmpeg-static";
 import { fileURLToPath } from "url";
 
-/* PATH SETUP */
+/* =========================
+PATH SETUP
+========================= */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +17,9 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-/* FIND FFMPEG */
+/* =========================
+FFMPEG PATH
+========================= */
 
 function getFFmpeg() {
 
@@ -25,11 +29,13 @@ function getFFmpeg() {
   }
 
   console.log("Fallback to system ffmpeg");
-
   return "ffmpeg";
+
 }
 
-/* VIDEO BUILDER */
+/* =========================
+VIDEO BUILDER
+========================= */
 
 export function buildVideo(images) {
 
@@ -45,51 +51,57 @@ export function buildVideo(images) {
 
       const output = path.join(tempDir, videoName);
 
-      const sceneDuration = 6;   // 6 seconds per scene → ~36s total
+      const sceneDuration = 6; // 6 sec per scene → ~36s video
 
-      /* INPUTS */
+      const clipFiles = [];
 
-      let inputs = "";
+      /* =========================
+      CREATE CLIPS FROM IMAGES
+      ========================= */
 
-      images.forEach((img) => {
-
-        inputs += ` -loop 1 -t ${sceneDuration} -i "${img}"`;
-
-      });
-
-      inputs += ` -i "${audio}"`;
-
-      /* FILTERS */
-
-      let filters = "";
+      let commands = "";
 
       images.forEach((img, i) => {
 
-        filters +=
-          `[${i}:v]scale=1080:1920:force_original_aspect_ratio=decrease,` +
-          `pad=1080:1920:(ow-iw)/2:(oh-ih)/2[v${i}];`;
+        const clip = path.join(tempDir, `clip_${i}.mp4`);
+
+        clipFiles.push(clip);
+
+        commands +=
+        `${ffmpeg} -y -loop 1 -i "${img}" ` +
+        `-t ${sceneDuration} ` +
+        `-vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2" ` +
+        `-preset ultrafast -pix_fmt yuv420p -c:v libx264 "${clip}" && `;
 
       });
 
-      const concatInputs = images.map((_, i) => `[v${i}]`).join("");
+      /* =========================
+      CONCAT FILE
+      ========================= */
 
-      filters += `${concatInputs}concat=n=${images.length}:v=1:a=0[v]`;
+      const concatFile = path.join(tempDir, `concat-${Date.now()}.txt`);
 
-      const audioIndex = images.length;
+      const concatContent = clipFiles
+        .map(file => `file '${file}'`)
+        .join("\n");
 
-      /* COMMAND */
+      fs.writeFileSync(concatFile, concatContent);
 
-      const command =
-        `${ffmpeg} -y ${inputs} ` +
-        `-filter_complex "${filters}" ` +
-        `-map "[v]" -map ${audioIndex}:a ` +
-        `-shortest -preset ultrafast ` +
-        `-c:v libx264 -pix_fmt yuv420p -c:a aac "${output}"`;
+      /* =========================
+      FINAL MERGE
+      ========================= */
 
-      console.log("FFMPEG COMMAND:");
-      console.log(command);
+      commands +=
+      `${ffmpeg} -y ` +
+      `-f concat -safe 0 -i "${concatFile}" ` +
+      `-i "${audio}" ` +
+      `-c:v libx264 -preset ultrafast -pix_fmt yuv420p ` +
+      `-c:a aac -shortest "${output}"`;
 
-      exec(command, { maxBuffer: 1024 * 1024 * 100 }, (error, stdout, stderr) => {
+      console.log("FFMPEG PIPELINE:");
+      console.log(commands);
+
+      exec(commands, { maxBuffer: 1024 * 1024 * 100 }, (error, stdout, stderr) => {
 
         if (error) {
 
