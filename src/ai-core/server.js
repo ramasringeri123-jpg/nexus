@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 import { generateImage } from "./imageGenerator.js";
@@ -31,9 +32,7 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const openai = new OpenAI({
-  apiKey
-});
+const openai = new OpenAI({ apiKey });
 
 /* ===============================
 PATH SETUP
@@ -43,6 +42,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const tempDir = path.join(__dirname, "temp");
+
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
 app.use("/videos", express.static(tempDir));
 
@@ -79,22 +82,32 @@ function getToday() {
 
 function cleanJSON(text) {
 
-  text = text.replace(/```json/g, "");
-  text = text.replace(/```/g, "");
+  try {
 
-  const start = text.indexOf("[");
-  const end = text.lastIndexOf("]");
+    text = text.replace(/```json/g, "");
+    text = text.replace(/```/g, "");
 
-  if (start === -1 || end === -1) {
-    throw new Error("Invalid JSON from AI");
+    const start = text.indexOf("[");
+    const end = text.lastIndexOf("]");
+
+    if (start === -1 || end === -1) {
+      throw new Error("Invalid JSON");
+    }
+
+    return JSON.parse(text.substring(start, end + 1));
+
+  } catch (err) {
+
+    console.error("JSON PARSE ERROR:", err);
+
+    return [];
+
   }
-
-  return JSON.parse(text.substring(start, end + 1));
 
 }
 
 /* ===============================
-FAST IMAGE GENERATOR
+ROBUST IMAGE GENERATOR
 =============================== */
 
 async function generateImagesFast(scenes) {
@@ -104,25 +117,41 @@ async function generateImagesFast(scenes) {
   for (let i = 0; i < scenes.length; i++) {
 
     const scene = scenes[i];
-    let img;
+    let img = null;
 
-    for (let retry = 0; retry < 2; retry++) {
+    for (let retry = 0; retry < 5; retry++) {
 
       try {
 
+        console.log(`Generating image ${i} attempt ${retry + 1}`);
+
         img = await generateImage(scene.visual, i);
-        break;
+
+        if (img) break;
 
       } catch (err) {
 
-        console.log("Retry image", i);
-        await new Promise(r => setTimeout(r, 2000));
+        console.log(`Retry image ${i}`);
+
+        await new Promise(r => setTimeout(r, 3000));
 
       }
 
     }
 
-    if (!img) throw new Error("Image generation failed");
+    if (!img) {
+
+      console.log(`Using fallback image for scene ${i}`);
+
+      const fallback = path.join(__dirname, "fallback.png");
+
+      if (fs.existsSync(fallback)) {
+        img = fallback;
+      } else {
+        throw new Error("Image generation failed");
+      }
+
+    }
 
     images.push(img);
 
@@ -156,11 +185,11 @@ app.post("/generate-video", async (req, res) => {
         {
           role: "system",
           content: `
-Generate a 60 second educational video.
+Generate a short educational video.
 
 Rules:
 - exactly 6 scenes
-- each scene ≈ 10 seconds
+- each scene contains visual + narration
 - return JSON array
 
 Example:
@@ -179,18 +208,20 @@ Example:
     });
 
     const scenes = cleanJSON(
-      completion.choices[0].message.content
+      completion.choices?.[0]?.message?.content || ""
     );
 
-    if (scenes.length < 6) {
-      while (scenes.length < 6) {
-        scenes.push(scenes[scenes.length - 1]);
-      }
+    if (!scenes.length) {
+      return res.status(500).json({
+        error: "Failed to generate scenes"
+      });
     }
 
-    if (scenes.length > 6) {
-      scenes.length = 6;
+    while (scenes.length < 6) {
+      scenes.push(scenes[scenes.length - 1]);
     }
+
+    scenes.length = 6;
 
     let narration = "";
 
@@ -202,7 +233,7 @@ Example:
 
     const voice = await generateVoice(narration);
 
-    const videoName = await buildVideo(images, voice);
+    const videoName = await buildVideo(images);
 
     const videoUrl =
       `${req.protocol}://${req.get("host")}/videos/${videoName}`;
