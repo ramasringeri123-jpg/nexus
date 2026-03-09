@@ -1,8 +1,10 @@
 import { exec } from "child_process";
 import path from "path";
 import fs from "fs";
-import ffmpegPath from "ffmpeg-static";
+import ffmpegStatic from "ffmpeg-static";
 import { fileURLToPath } from "url";
+
+/* PATH SETUP */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,26 +15,51 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
+/* FIND FFMPEG */
+
+function getFFmpeg() {
+
+  if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
+    console.log("Using ffmpeg-static:", ffmpegStatic);
+    return `"${ffmpegStatic}"`;
+  }
+
+  console.log("Fallback to system ffmpeg");
+
+  return "ffmpeg";
+}
+
+/* VIDEO BUILDER */
+
 export function buildVideo(images) {
 
   return new Promise((resolve, reject) => {
 
     try {
 
+      const ffmpeg = getFFmpeg();
+
       const audio = path.join(tempDir, "voice.mp3");
 
       const videoName = `reel-${Date.now()}.mp4`;
+
       const output = path.join(tempDir, videoName);
 
-      const sceneDuration = 10;
+      const sceneDuration = 6;   // 6 seconds per scene → ~36s total
+
+      /* INPUTS */
 
       let inputs = "";
 
       images.forEach((img) => {
+
         inputs += ` -loop 1 -t ${sceneDuration} -i "${img}"`;
+
       });
 
       inputs += ` -i "${audio}"`;
+
+      /* FILTERS */
 
       let filters = "";
 
@@ -50,16 +77,19 @@ export function buildVideo(images) {
 
       const audioIndex = images.length;
 
+      /* COMMAND */
+
       const command =
-        `"${ffmpegPath}" -y ${inputs} ` +
+        `${ffmpeg} -y ${inputs} ` +
         `-filter_complex "${filters}" ` +
         `-map "[v]" -map ${audioIndex}:a ` +
-        `-shortest -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac "${output}"`;
+        `-shortest -preset ultrafast ` +
+        `-c:v libx264 -pix_fmt yuv420p -c:a aac "${output}"`;
 
       console.log("FFMPEG COMMAND:");
       console.log(command);
 
-      exec(command, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
+      exec(command, { maxBuffer: 1024 * 1024 * 100 }, (error, stdout, stderr) => {
 
         if (error) {
 
@@ -80,6 +110,7 @@ export function buildVideo(images) {
     } catch (err) {
 
       console.error("VIDEO BUILDER ERROR:", err);
+
       reject(err);
 
     }
