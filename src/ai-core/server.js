@@ -16,12 +16,7 @@ const app = express();
 MIDDLEWARE
 =============================== */
 
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
-
+app.use(cors());
 app.use(express.json());
 
 /* ===============================
@@ -67,7 +62,7 @@ app.get("/", (req, res) => {
 });
 
 /* ===============================
-HEALTH CHECK
+HEALTH
 =============================== */
 
 app.get("/health", (req, res) => {
@@ -75,87 +70,28 @@ app.get("/health", (req, res) => {
 });
 
 /* ===============================
-MEMORY STORAGE
+JSON CLEANER
 =============================== */
-
-const reelLibrary = [];
-const imageUsage = {};
-
-/* ===============================
-HELPERS
-=============================== */
-
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function cleanJSON(text) {
+
   try {
+
     text = text.replace(/```json/g, "");
     text = text.replace(/```/g, "");
 
     const start = text.indexOf("[");
     const end = text.lastIndexOf("]");
 
-    if (start === -1 || end === -1) {
-      throw new Error("Invalid JSON");
-    }
-
     return JSON.parse(text.substring(start, end + 1));
+
   } catch (err) {
-    console.error("JSON PARSE ERROR:", err);
+
+    console.error("JSON parse failed");
     return [];
-  }
-}
 
-/* ===============================
-IMAGE GENERATOR WITH RETRIES
-=============================== */
-
-async function generateImagesFast(scenes) {
-
-  const images = [];
-
-  for (let i = 0; i < scenes.length; i++) {
-
-    const scene = scenes[i];
-    let img = null;
-
-    for (let retry = 0; retry < 5; retry++) {
-
-      try {
-
-        console.log(`Generating image ${i} attempt ${retry + 1}`);
-
-        img = await generateImage(scene.visual, i);
-
-        if (img) break;
-
-      } catch {
-
-        console.log(`Retry image ${i}`);
-        await new Promise(r => setTimeout(r, 3000));
-
-      }
-
-    }
-
-    if (!img) {
-
-      const fallback = path.join(__dirname, "fallback.png");
-
-      if (fs.existsSync(fallback)) {
-        img = fallback;
-      } else {
-        throw new Error("Image generation failed");
-      }
-
-    }
-
-    images.push(img);
   }
 
-  return images;
 }
 
 /* ===============================
@@ -180,12 +116,15 @@ app.post("/generate-video", async (req, res) => {
         {
           role: "system",
           content: `
-Generate a short educational video.
+Generate a short educational video script.
 
 Rules:
 - exactly 6 scenes
-- each scene contains visual + narration
-- return JSON array
+- each narration must be around 8-10 seconds
+- each scene contains:
+  visual description
+  narration text
+Return JSON array.
 `
         },
         {
@@ -201,14 +140,10 @@ Rules:
     );
 
     if (!scenes.length) {
-      return res.status(500).json({ error: "Scene generation failed" });
+      return res.status(500).json({
+        error: "Scene generation failed"
+      });
     }
-
-    while (scenes.length < 6) {
-      scenes.push(scenes[scenes.length - 1]);
-    }
-
-    scenes.length = 6;
 
     let narration = "";
 
@@ -216,21 +151,24 @@ Rules:
       narration += scene.narration + " ";
     });
 
-    const images = await generateImagesFast(scenes);
-    const voice = await generateVoice(narration);
-    const videoName = await buildVideo(images, voice);
+    const images = [];
+
+    for (let i = 0; i < scenes.length; i++) {
+
+      console.log(`Generating image ${i}`);
+
+      const img = await generateImage(scenes[i].visual, i);
+
+      images.push(img);
+
+    }
+
+    await generateVoice(narration);
+
+    const videoName = await buildVideo(images);
 
     const videoUrl =
       `${req.protocol}://${req.get("host")}/videos/${videoName}`;
-
-    const reel = {
-      id: Date.now(),
-      topic,
-      videoUrl,
-      createdAt: new Date()
-    };
-
-    reelLibrary.push(reel);
 
     res.json({ videoUrl });
 
@@ -240,111 +178,6 @@ Rules:
 
     res.status(500).json({
       error: "Video generation failed"
-    });
-
-  }
-
-});
-
-/* ===============================
-REELS LIBRARY
-=============================== */
-
-app.get("/reels", (req, res) => {
-  res.json({ reels: reelLibrary.slice().reverse() });
-});
-
-/* ===============================
-IMAGE GENERATOR
-=============================== */
-
-app.post("/generate-image", async (req, res) => {
-
-  try {
-
-    const { prompt } = req.body;
-
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt required" });
-    }
-
-    const ip = req.ip;
-    const today = getToday();
-
-    if (!imageUsage[ip]) {
-      imageUsage[ip] = { date: today, count: 0 };
-    }
-
-    if (imageUsage[ip].date !== today) {
-      imageUsage[ip] = { date: today, count: 0 };
-    }
-
-    if (imageUsage[ip].count >= 10) {
-      return res.json({ error: "Daily free limit reached" });
-    }
-
-    imageUsage[ip].count++;
-
-    const result = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt,
-      size: "1024x1024"
-    });
-
-    const image =
-      `data:image/png;base64,${result.data[0].b64_json}`;
-
-    res.json({ image });
-
-  } catch (err) {
-
-    console.error("IMAGE ERROR:", err);
-
-    res.status(500).json({
-      error: "Image generation failed"
-    });
-
-  }
-
-});
-
-/* ===============================
-TECHBOT
-=============================== */
-
-app.post("/techbot", async (req, res) => {
-
-  try {
-
-    const { message } = req.body;
-
-    if (!message) {
-      return res.json({ reply: "Ask me something." });
-    }
-
-    const completion = await openai.chat.completions.create({
-
-      model: "gpt-4o-mini",
-
-      messages: [
-        { role: "system", content: "You are TechBot, a helpful AI tutor." },
-        { role: "user", content: message }
-      ]
-
-    });
-
-    const reply =
-      completion.choices?.[0]?.message?.content ||
-      "No response generated.";
-
-    res.json({ reply });
-
-  } catch (err) {
-
-    console.error("TECHBOT ERROR:", err);
-
-    res.status(500).json({
-      reply: "TechBot server error."
     });
 
   }

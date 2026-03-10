@@ -36,10 +36,12 @@ VIDEO BUILDER
 ========================= */
 
 export function buildVideo(images) {
-  return new Promise((resolve, reject) => {
-    try {
-      const ffmpeg = getFFmpeg();
 
+  return new Promise((resolve, reject) => {
+
+    try {
+
+      const ffmpeg = getFFmpeg();
       const audio = path.join(tempDir, "voice.mp3");
 
       if (!fs.existsSync(audio)) {
@@ -53,16 +55,17 @@ export function buildVideo(images) {
       const videoName = `reel-${Date.now()}.mp4`;
       const output = path.join(tempDir, videoName);
 
-      const sceneDuration = 6;
+      const sceneDuration = 9; // 9 sec per scene → ~54s total
 
       const clipFiles = [];
       let commands = "";
 
       /* =========================
-      CREATE VIDEO CLIPS
+      CREATE CLIPS
       ========================= */
 
       images.forEach((img, i) => {
+
         if (!fs.existsSync(img)) {
           throw new Error(`Image missing: ${img}`);
         }
@@ -78,19 +81,19 @@ export function buildVideo(images) {
       });
 
       /* =========================
-      CREATE CONCAT FILE
+      CONCAT FILE
       ========================= */
 
       const concatFile = path.join(tempDir, `concat-${Date.now()}.txt`);
 
       const concatContent = clipFiles
-        .map(file => `file '${file.replace(/'/g, "'\\''")}'`)
+        .map(file => `file '${file}'`)
         .join("\n");
 
       fs.writeFileSync(concatFile, concatContent);
 
       /* =========================
-      FINAL VIDEO MERGE
+      FINAL MERGE
       ========================= */
 
       commands +=
@@ -104,14 +107,17 @@ export function buildVideo(images) {
       console.log(commands);
 
       exec(commands, { maxBuffer: 1024 * 1024 * 200 }, (error, stdout, stderr) => {
+
         if (error) {
+
           console.error("FFMPEG ERROR:", error);
           console.error(stderr);
+
           return reject(error);
         }
 
         if (!fs.existsSync(output)) {
-          return reject(new Error("Video file was not created"));
+          return reject(new Error("Video file not created"));
         }
 
         console.log("VIDEO CREATED:", videoName);
@@ -127,11 +133,16 @@ export function buildVideo(images) {
         if (fs.existsSync(concatFile)) fs.unlinkSync(concatFile);
 
         resolve(videoName);
+
       });
 
     } catch (err) {
+
       console.error("VIDEO BUILDER ERROR:", err);
       reject(err);
+
     }
+
   });
+
 }
