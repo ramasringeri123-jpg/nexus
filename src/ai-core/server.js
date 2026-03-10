@@ -12,7 +12,16 @@ import { buildVideo } from "./videoBuilder.js";
 
 const app = express();
 
-app.use(cors());
+/* ===============================
+MIDDLEWARE
+=============================== */
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 /* ===============================
@@ -54,15 +63,15 @@ ROOT
 =============================== */
 
 app.get("/", (req, res) => {
-  res.send("🚀 Nexus AI API running");
+  res.json({ status: "Nexus AI API running" });
 });
 
 /* ===============================
 HEALTH CHECK
 =============================== */
 
-app.get("/healthz", (req, res) => {
-  res.send("OK");
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
 /* ===============================
@@ -81,9 +90,7 @@ function getToday() {
 }
 
 function cleanJSON(text) {
-
   try {
-
     text = text.replace(/```json/g, "");
     text = text.replace(/```/g, "");
 
@@ -95,19 +102,14 @@ function cleanJSON(text) {
     }
 
     return JSON.parse(text.substring(start, end + 1));
-
   } catch (err) {
-
     console.error("JSON PARSE ERROR:", err);
-
     return [];
-
   }
-
 }
 
 /* ===============================
-ROBUST IMAGE GENERATOR
+IMAGE GENERATOR WITH RETRIES
 =============================== */
 
 async function generateImagesFast(scenes) {
@@ -129,10 +131,9 @@ async function generateImagesFast(scenes) {
 
         if (img) break;
 
-      } catch (err) {
+      } catch {
 
         console.log(`Retry image ${i}`);
-
         await new Promise(r => setTimeout(r, 3000));
 
       }
@@ -140,8 +141,6 @@ async function generateImagesFast(scenes) {
     }
 
     if (!img) {
-
-      console.log(`Using fallback image for scene ${i}`);
 
       const fallback = path.join(__dirname, "fallback.png");
 
@@ -154,11 +153,9 @@ async function generateImagesFast(scenes) {
     }
 
     images.push(img);
-
   }
 
   return images;
-
 }
 
 /* ===============================
@@ -172,9 +169,7 @@ app.post("/generate-video", async (req, res) => {
     const { topic } = req.body;
 
     if (!topic) {
-      return res.status(400).json({
-        error: "Topic required"
-      });
+      return res.status(400).json({ error: "Topic required" });
     }
 
     const completion = await openai.chat.completions.create({
@@ -191,12 +186,6 @@ Rules:
 - exactly 6 scenes
 - each scene contains visual + narration
 - return JSON array
-
-Example:
-
-[
- {"visual":"...","narration":"..."}
-]
 `
         },
         {
@@ -212,9 +201,7 @@ Example:
     );
 
     if (!scenes.length) {
-      return res.status(500).json({
-        error: "Failed to generate scenes"
-      });
+      return res.status(500).json({ error: "Scene generation failed" });
     }
 
     while (scenes.length < 6) {
@@ -230,10 +217,8 @@ Example:
     });
 
     const images = await generateImagesFast(scenes);
-
     const voice = await generateVoice(narration);
-
-    const videoName = await buildVideo(images);
+    const videoName = await buildVideo(images, voice);
 
     const videoUrl =
       `${req.protocol}://${req.get("host")}/videos/${videoName}`;
@@ -262,15 +247,11 @@ Example:
 });
 
 /* ===============================
-REEL LIBRARY
+REELS LIBRARY
 =============================== */
 
 app.get("/reels", (req, res) => {
-
-  res.json({
-    reels: reelLibrary.slice().reverse()
-  });
-
+  res.json({ reels: reelLibrary.slice().reverse() });
 });
 
 /* ===============================
@@ -284,9 +265,7 @@ app.post("/generate-image", async (req, res) => {
     const { prompt } = req.body;
 
     if (!prompt) {
-      return res.status(400).json({
-        error: "Prompt required"
-      });
+      return res.status(400).json({ error: "Prompt required" });
     }
 
     const ip = req.ip;
@@ -301,21 +280,15 @@ app.post("/generate-image", async (req, res) => {
     }
 
     if (imageUsage[ip].count >= 10) {
-
-      return res.json({
-        error: "Daily free limit reached"
-      });
-
+      return res.json({ error: "Daily free limit reached" });
     }
 
     imageUsage[ip].count++;
 
     const result = await openai.images.generate({
-
       model: "gpt-image-1",
       prompt,
       size: "1024x1024"
-
     });
 
     const image =
@@ -346,9 +319,7 @@ app.post("/techbot", async (req, res) => {
     const { message } = req.body;
 
     if (!message) {
-      return res.json({
-        reply: "Ask me something."
-      });
+      return res.json({ reply: "Ask me something." });
     }
 
     const completion = await openai.chat.completions.create({
@@ -356,14 +327,8 @@ app.post("/techbot", async (req, res) => {
       model: "gpt-4o-mini",
 
       messages: [
-        {
-          role: "system",
-          content: "You are TechBot, a helpful AI tutor."
-        },
-        {
-          role: "user",
-          content: message
-        }
+        { role: "system", content: "You are TechBot, a helpful AI tutor." },
+        { role: "user", content: message }
       ]
 
     });
@@ -391,7 +356,5 @@ SERVER START
 =============================== */
 
 app.listen(PORT, "0.0.0.0", () => {
-
   console.log(`🚀 Nexus AI server running on port ${PORT}`);
-
 });
