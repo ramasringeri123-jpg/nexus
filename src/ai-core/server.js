@@ -16,8 +16,15 @@ const app = express();
 MIDDLEWARE
 =============================== */
 
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
+
+app.set("trust proxy", true);
 
 /* ===============================
 PORT
@@ -62,7 +69,7 @@ app.get("/", (req, res) => {
 });
 
 /* ===============================
-HEALTH
+HEALTH CHECK
 =============================== */
 
 app.get("/health", (req, res) => {
@@ -70,28 +77,86 @@ app.get("/health", (req, res) => {
 });
 
 /* ===============================
-JSON CLEANER
+DAILY VIDEO LIMIT
+=============================== */
+
+const videoUsage = {};
+
+function getToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* ===============================
+HELPERS
 =============================== */
 
 function cleanJSON(text) {
-
   try {
-
     text = text.replace(/```json/g, "");
     text = text.replace(/```/g, "");
 
     const start = text.indexOf("[");
     const end = text.lastIndexOf("]");
 
+    if (start === -1 || end === -1) {
+      throw new Error("Invalid JSON");
+    }
+
     return JSON.parse(text.substring(start, end + 1));
-
   } catch (err) {
-
-    console.error("JSON parse failed");
+    console.error("JSON PARSE ERROR:", err);
     return [];
+  }
+}
 
+/* ===============================
+IMAGE GENERATOR WITH RETRIES
+=============================== */
+
+async function generateImagesFast(scenes) {
+
+  const images = [];
+
+  for (let i = 0; i < scenes.length; i++) {
+
+    const scene = scenes[i];
+    let img = null;
+
+    for (let retry = 0; retry < 5; retry++) {
+
+      try {
+
+        console.log(`Generating image ${i} attempt ${retry + 1}`);
+
+        img = await generateImage(scene.visual, i);
+
+        if (img) break;
+
+      } catch {
+
+        console.log(`Retry image ${i}`);
+        await new Promise(r => setTimeout(r, 3000));
+
+      }
+
+    }
+
+    if (!img) {
+
+      const fallback = path.join(__dirname, "fallback.png");
+
+      if (fs.existsSync(fallback)) {
+        img = fallback;
+      } else {
+        throw new Error("Image generation failed");
+      }
+
+    }
+
+    images.push(img);
   }
 
+  return images;
 }
 
 /* ===============================
@@ -99,6 +164,25 @@ VIDEO GENERATOR
 =============================== */
 
 app.post("/generate-video", async (req, res) => {
+
+  const ip = req.ip;
+  const today = getToday();
+
+  if (!videoUsage[ip]) {
+    videoUsage[ip] = { date: today, count: 0 };
+  }
+
+  if (videoUsage[ip].date !== today) {
+    videoUsage[ip] = { date: today, count: 0 };
+  }
+
+  if (videoUsage[ip].count >= 1) {
+    return res.status(429).json({
+      error: "Daily video limit reached. Try again tomorrow."
+    });
+  }
+
+  videoUsage[ip].count++;
 
   try {
 
@@ -116,15 +200,12 @@ app.post("/generate-video", async (req, res) => {
         {
           role: "system",
           content: `
-Generate a short educational video script.
+Generate a short educational video.
 
 Rules:
 - exactly 6 scenes
-- each narration must be around 8-10 seconds
-- each scene contains:
-  visual description
-  narration text
-Return JSON array.
+- each scene contains visual + narration
+- return JSON array
 `
         },
         {
@@ -141,9 +222,15 @@ Return JSON array.
 
     if (!scenes.length) {
       return res.status(500).json({
-        error: "Scene generation failed"
+        error: "Failed to generate scenes"
       });
     }
+
+    while (scenes.length < 6) {
+      scenes.push(scenes[scenes.length - 1]);
+    }
+
+    scenes.length = 6;
 
     let narration = "";
 
@@ -151,17 +238,7 @@ Return JSON array.
       narration += scene.narration + " ";
     });
 
-    const images = [];
-
-    for (let i = 0; i < scenes.length; i++) {
-
-      console.log(`Generating image ${i}`);
-
-      const img = await generateImage(scenes[i].visual, i);
-
-      images.push(img);
-
-    }
+    const images = await generateImagesFast(scenes);
 
     await generateVoice(narration);
 
