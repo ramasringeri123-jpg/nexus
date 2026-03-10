@@ -18,8 +18,8 @@ MIDDLEWARE
 =============================== */
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.set("trust proxy", true);
@@ -163,7 +163,7 @@ async function processVideoInBackground(jobId, topic, baseUrl) {
 }
 
 /* ===============================
-ENDPOINTS
+STUDY REELS ENDPOINTS
 =============================== */
 app.get("/", (req, res) => res.json({ status: "Nexus AI API running" }));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
@@ -174,22 +174,20 @@ app.post("/generate-video", async (req, res) => {
 
   if (!videoUsage[ip]) videoUsage[ip] = { date: today, count: 0 };
   if (videoUsage[ip].date !== today) videoUsage[ip] = { date: today, count: 0 };
-  if (videoUsage[ip].count >= 1) { // You had this at 1 for daily limit
+  if (videoUsage[ip].count >= 1) { 
     return res.status(429).json({ error: "Daily video limit reached. Try again tomorrow." });
   }
 
   const { topic } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
 
-  videoUsage[ip].count++; // Deduct credit
+  videoUsage[ip].count++; 
   const jobId = crypto.randomUUID();
   const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-  // Initialize job and Start background processing immediately
   jobs.set(jobId, { status: "pending", progress: "Initializing task..." });
   processVideoInBackground(jobId, topic, baseUrl);
 
-  // Return instantly to prevent browser timeout
   res.status(202).json({ jobId });
 });
 
@@ -199,12 +197,53 @@ app.get("/job-status/:jobId", (req, res) => {
   res.json(job);
 });
 
-/* (Assuming you have this based on your frontend loadNext) */
 app.get("/reels", (req, res) => {
-  // Replace with your actual DB fetching logic
   res.json({ reels: [] }); 
 });
 
+/* ===============================
+TECHBOT (AI Chat) ENDPOINT
+=============================== */
+app.post("/techbot", async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    // 1. Validation check
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // 2. Call OpenAI using the efficient gpt-4o-mini model
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini", 
+      messages: [
+        { 
+          role: "system", 
+          content: "You are TechBot, a highly intelligent, empathetic, and friendly AI study assistant for the NEXUS platform. Help students understand complex educational concepts simply. Keep your answers concise, well-formatted, and encouraging." 
+        },
+        { 
+          role: "user", 
+          content: message 
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500, // Keeps responses reasonably sized to save credits
+    });
+
+    const reply = completion.choices[0].message.content;
+
+    // 3. Send the exact JSON format the frontend expects
+    res.json({ reply: reply });
+
+  } catch (err) {
+    console.error("TECHBOT ERROR:", err);
+    res.status(500).json({ error: "TechBot server error." });
+  }
+});
+
+/* ===============================
+SERVER START
+=============================== */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Nexus AI server running on port ${PORT}`);
 });
