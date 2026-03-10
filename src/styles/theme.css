@@ -1,9 +1,79 @@
 body{
-background:#0f1117;
+background:#0f172a;
 color:#e5e7eb;
 font-family:Inter,system-ui;
 margin:0;
 }
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:25px 60px;
+}
+
+.logo{
+color:#6366f1;
+}
+
+/* HERO */
+
+.hero{
+max-width:800px;
+margin:120px auto;
+text-align:center;
+}
+
+.hero h1{
+font-size:48px;
+margin-bottom:20px;
+}
+
+.hero p{
+color:#94a3b8;
+margin-bottom:30px;
+}
+
+/* BUTTONS */
+
+.btn-primary{
+background:#6366f1;
+border:none;
+padding:12px 22px;
+border-radius:8px;
+color:white;
+cursor:pointer;
+}
+
+.btn-secondary{
+background:#1e293b;
+border:none;
+padding:12px 22px;
+border-radius:8px;
+color:white;
+cursor:pointer;
+}
+
+/* FEATURES */
+
+.features{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:30px;
+max-width:1000px;
+margin:80px auto;
+}
+
+.feature-card{
+background:#1e293b;
+padding:25px;
+border-radius:12px;
+text-align:center;
+}
+
+/* DASHBOARD */
 
 .dashboard{
 display:flex;
@@ -12,26 +82,22 @@ min-height:100vh;
 
 .sidebar{
 width:240px;
-background:#161b22;
+background:#020617;
 padding:25px;
-border-right:1px solid #2a2f3a;
-}
-
-.sidebar h2{
-color:#7c8cff;
-margin-bottom:30px;
+display:flex;
+flex-direction:column;
+gap:15px;
 }
 
 .nav-item{
-padding:12px;
-border-radius:8px;
-margin-bottom:10px;
-cursor:pointer;
 color:#cbd5e1;
+text-decoration:none;
+padding:10px;
+border-radius:6px;
 }
 
 .nav-item:hover{
-background:#202531;
+background:#1e293b;
 }
 
 .main{
@@ -39,44 +105,34 @@ flex:1;
 padding:40px;
 }
 
+/* CARDS */
+
 .card{
-background:#161b22;
-border-radius:14px;
+background:#1e293b;
 padding:20px;
-box-shadow:0 10px 30px rgba(0,0,0,0.3);
+border-radius:12px;
 margin-bottom:20px;
 }
 
-.button{
-background:#7c8cff;
-border:none;
-padding:12px 22px;
-border-radius:8px;
-cursor:pointer;
-color:white;
-font-weight:500;
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
 }
 
-.button:hover{
-opacity:.9;
+.avatar{
+width:50px;
+height:50px;
+border-radius:50%;
 }
 
-.input{
-padding:12px;
-background:#0f1117;
-border:1px solid #2a2f3a;
-border-radius:8px;
-color:white;
-width:300px;
+.muted{
+color:#94a3b8;
 }
 
-.video-card{
-background:#1a1f2b;
-border-radius:12px;
-padding:15px;
-margin-top:15px;
-}
-
-.video-card video{
-border-radius:10px;
+.footer{
+text-align:center;
+margin-top:80px;
+padding:30px;
+color:#94a3b8;
 }

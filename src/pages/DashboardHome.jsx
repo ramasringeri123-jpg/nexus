@@ -34,83 +34,50 @@ export default function DashboardHome() {
 
   return (
 
-    <div className="p-10">
+    <div>
 
-      {/* PROFILE HEADER */}
+      <div className="card">
 
-      <div className="flex items-center gap-4 mb-8">
+        <div style={{display:"flex",alignItems:"center",gap:"15px"}}>
 
-        <img
-          src={avatar}
-          className="w-14 h-14 rounded-full"
-        />
+          <img src={avatar} className="avatar" />
 
-        <div>
-          <h2 className="text-xl font-semibold">
-            {userData?.displayName}
-          </h2>
+          <div>
+            <h2>{userData?.displayName}</h2>
+            <p className="muted">@{userData?.username}</p>
+          </div>
 
-          <p className="text-gray-400">
-            @{userData?.username}
-          </p>
         </div>
 
       </div>
 
-      <h1 className="text-3xl font-bold mb-6">
-        Dashboard
-      </h1>
+      <h1 style={{marginBottom:"20px"}}>Dashboard</h1>
 
-      <div className="grid md:grid-cols-5 gap-6">
+      <div className="grid">
 
-        <Link
-          to="/dashboard/study-reels"
-          className="bg-[#0f172a] p-6 rounded-xl"
-        >
+        <Link to="/dashboard/study-reels" className="card">
           🎬 Study Reels
-          <p className="text-gray-400">
-            Create AI study reels
-          </p>
+          <p>Create AI study reels</p>
         </Link>
 
-        <Link
-          to="/dashboard/image-generator"
-          className="bg-[#0f172a] p-6 rounded-xl"
-        >
+        <Link to="/dashboard/image-generator" className="card">
           🖼 Image Generator
-          <p className="text-gray-400">
-            Create AI images
-          </p>
+          <p>Create AI images</p>
         </Link>
 
-        <Link
-          to="/dashboard/my-reels"
-          className="bg-[#0f172a] p-6 rounded-xl"
-        >
+        <Link to="/dashboard/my-reels" className="card">
           📚 My Reels
-          <p className="text-gray-400">
-            Your generated reels
-          </p>
+          <p>Your generated reels</p>
         </Link>
 
-        <Link
-          to="/dashboard/profile"
-          className="bg-[#0f172a] p-6 rounded-xl"
-        >
+        <Link to="/dashboard/profile" className="card">
           👤 Profile
-          <p className="text-gray-400">
-            Edit your profile
-          </p>
+          <p>Edit your profile</p>
         </Link>
 
-        <Link
-          to="/dashboard/students"
-          className="bg-[#0f172a] p-6 rounded-xl"
-        >
-          🔎 Search Friends
-          <p className="text-gray-400">
-            Find students near you
-          </p>
+        <Link to="/dashboard/students" className="card">
+          🔎 Students
+          <p>Find students near you</p>
         </Link>
 
       </div>

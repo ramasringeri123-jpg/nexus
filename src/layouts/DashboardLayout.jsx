@@ -5,46 +5,58 @@ import AIChat from "../components/AIchat";
 export default function DashboardLayout() {
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
 
-      {/* Sidebar */}
+    <div className="dashboard">
 
-      <div
-        style={{
-          width: "220px",
-          background: "#020617",
-          padding: "30px",
-          color: "white",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px"
-        }}
-      >
+      {/* SIDEBAR */}
 
-        <h2>NEXUS</h2>
+      <aside className="sidebar">
 
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/dashboard/study-reels">Study Reels</Link>
-        <Link to="/dashboard/profile">Profile</Link>
-        <Link to="/dashboard/students">Students</Link>
-        <Link to="/dashboard/upgrade">Upgrade</Link>
+        <h2 className="logo">NEXUS</h2>
 
-        <div style={{ marginTop: "40px" }}>
+        <nav>
+
+          <Link className="nav-item" to="/dashboard">
+            Dashboard
+          </Link>
+
+          <Link className="nav-item" to="/dashboard/study-reels">
+            Study Reels
+          </Link>
+
+          <Link className="nav-item" to="/dashboard/image-generator">
+            Image Generator
+          </Link>
+
+          <Link className="nav-item" to="/dashboard/my-reels">
+            My Reels
+          </Link>
+
+          <Link className="nav-item" to="/dashboard/profile">
+            Profile
+          </Link>
+
+          <Link className="nav-item" to="/dashboard/students">
+            Students
+          </Link>
+
+        </nav>
+
+        <div style={{ marginTop: "auto" }}>
           <LogoutButton />
         </div>
 
-      </div>
+      </aside>
 
-      {/* Main Content */}
+      {/* MAIN */}
 
-      <div style={{ flex: 1, padding: "40px" }}>
+      <main className="main">
         <Outlet />
-      </div>
-
-      {/* TechBot only inside dashboard */}
+      </main>
 
       <AIChat />
 
     </div>
+
   );
 }
