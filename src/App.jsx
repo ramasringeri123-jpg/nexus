@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import Chat from "./pages/Chat";
 
 import DashboardHome from "./pages/DashboardHome";
 import StudyReels from "./pages/StudyReels";
@@ -55,6 +56,7 @@ export default function App() {
         {/* NEW Social & Premium Routes */}
         <Route path="/dashboard/global-reels" element={<GlobalReels />} />
         <Route path="/dashboard/network" element={<Network />} />
+        <Route path="/dashboard/chat" element={<Chat />} />
         <Route path="/premium" element={<Premium />} />
 
       </Routes>

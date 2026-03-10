@@ -5,11 +5,18 @@ export default function DashboardHome() {
     <div className="min-h-screen pt-20 pb-10 px-4 md:px-8 max-w-7xl mx-auto">
       
       {/* --- DASHBOARD HEADER --- */}
-      <header className="mb-10 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-          Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Student</span> 👋
-        </h1>
-        <p className="text-slate-400">Ready to crush your study goals today? Select a tool below to get started.</p>
+      <header className="mb-10 animate-fade-in flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Student</span> 👋
+          </h1>
+          <p className="text-slate-400">Ready to crush your study goals today? Select a tool below to get started.</p>
+        </div>
+        
+        {/* Upgrade Button */}
+        <Link to="/premium" className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+          <span className="text-xl">👑</span> Upgrade to Pro
+        </Link>
       </header>
 
       {/* --- QUICK STATS / OVERVIEW --- */}
@@ -27,33 +34,54 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* --- AI TOOLS GRID --- */}
-      <h2 className="text-xl font-bold text-white mb-4">Your AI Toolkit</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      {/* --- AI & SOCIAL TOOLKIT GRID --- */}
+      <h2 className="text-xl font-bold text-white mb-4">Your AI & Social Toolkit</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         
         {/* Tool 1: Study Reels */}
         <Link to="/dashboard/study-reels" className="card group hover:border-indigo-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <span className="text-2xl">🎬</span>
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Study Reels</h3>
+          <h3 className="text-lg font-bold text-white mb-2">Study Reels Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Swipe through AI-generated micro-lessons tailored to your syllabus.</p>
           <span className="text-indigo-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
             Launch tool &rarr;
           </span>
         </Link>
 
-        {/* Tool 2: Image Generator */}
+        {/* Tool 2: Global Reels (NEW) */}
+        <Link to="/dashboard/global-reels" className="card group hover:border-blue-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+          <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
+            <span className="text-2xl">🌍</span>
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Global Feed</h3>
+          <p className="text-sm text-slate-400 mb-6 flex-1">Watch and learn from Reels published by students all over the world.</p>
+          <span className="text-blue-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+            Watch now &rarr;
+          </span>
+        </Link>
+
+        {/* Tool 3: Student Network (NEW) */}
+        <Link to="/dashboard/network" className="card group hover:border-emerald-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+            <span className="text-2xl">🤝</span>
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Student Network</h3>
+          <p className="text-sm text-slate-400 mb-6 flex-1">Find friends, compare study hours, and connect with peers.</p>
+          <span className="text-emerald-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+            Find friends &rarr;
+          </span>
+        </Link>
+
+        {/* Tool 4: Image Generator */}
         <Link to="/dashboard/image-generator" className="card group hover:border-purple-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
           <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <span className="text-2xl">🖼️</span>
           </div>
           <h3 className="text-lg font-bold text-white mb-2">Visual Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate complex diagrams, charts, and visual mind maps instantly.</p>
@@ -62,16 +90,14 @@ export default function DashboardHome() {
           </span>
         </Link>
 
-        {/* Tool 3: Global TechBot / Chat */}
-        <div className="card group hover:border-pink-500/50 transition-all duration-300 flex flex-col h-full relative overflow-hidden">
+        {/* Tool 5: Global TechBot / Chat */}
+        <div className="card group hover:border-pink-500/50 transition-all duration-300 flex flex-col h-full relative overflow-hidden lg:col-span-2">
           <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
           <div className="w-12 h-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
+            <span className="text-2xl">🤖</span>
           </div>
           <h3 className="text-lg font-bold text-white mb-2">TechBot Assistant</h3>
-          <p className="text-sm text-slate-400 mb-6 flex-1">Your floating AI tutor is always active. Check the bottom corner of your screen!</p>
+          <p className="text-sm text-slate-400 mb-6 flex-1">Your floating AI tutor is always active. Check the bottom corner of your screen to ask a question anytime!</p>
           <span className="text-pink-400 text-sm font-semibold flex items-center gap-1">
             Active Globally <span className="relative flex h-3 w-3 ml-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span></span>
           </span>
@@ -85,6 +111,7 @@ export default function DashboardHome() {
         <ul className="divide-y divide-white/5">
           {[
             { action: "Generated a diagram for", subject: "Cellular Mitosis", time: "2 hours ago" },
+            { action: "Connected with", subject: "@priyap", time: "5 hours ago" },
             { action: "Watched a Study Reel on", subject: "Quantum Computing Basics", time: "Yesterday" },
             { action: "Asked TechBot about", subject: "Python Array Methods", time: "2 days ago" },
           ].map((item, i) => (
