@@ -11,11 +11,10 @@ import http from "http";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 
-// --- MODELS (Fixed case sensitivity) ---
-import User from "./models/User.js";
-import Chat from "./models/chat.js"; // Fixed: Capital C to match filename
-// Change this line in your src/ai-core/server.js
-import Reel from "./models/Reel.js"; // Use lowercase 'r' here
+// --- MODELS (Forced lowercase to fix Git/Render cache issue) ---
+import User from "./models/user.js";
+import Chat from "./models/chat.js"; 
+import Reel from "./models/reel.js"; 
 
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
