@@ -11,7 +11,6 @@ import http from "http";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 
-// --- MODELS (Forced lowercase to fix Git/Render cache issue) ---
 // --- MODELS (Renamed to nuke Git cache) ---
 import User from "./models/UserModel.js";
 import Chat from "./models/ChatModel.js"; 
@@ -150,7 +149,7 @@ app.get("/api/global-reels", async (req, res) => {
 });
 
 /* ===============================
-AI VIDEO PIPELINE (Untouched)
+AI VIDEO PIPELINE
 =============================== */
 const videoUsage = {};
 const jobs = new Map();
@@ -167,7 +166,8 @@ function cleanJSON(text) {
 async function processVideoInBackground(jobId, topic, baseUrl, userId) {
   try {
     jobs.set(jobId, { status: "processing", progress: "Writing AI script..." });
-    const scriptModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // ---> UPDATED TO LATEST MODEL <---
+    const scriptModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const result = await scriptModel.generateContent(`Generate 6 scene educational script for ${topic} in JSON array with 'visual' and 'narration'. Total words 110-125.`);
     const scenes = cleanJSON(result.response.text());
 
@@ -200,9 +200,20 @@ app.post("/generate-video", async (req, res) => {
 
 app.get("/job-status/:jobId", (req, res) => res.json(jobs.get(req.params.jobId) || { error: "Not found" }));
 
+
+/* ===============================
+TECHBOT
+=============================== */
 app.post("/techbot", async (req, res) => {
-  const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(req.body.message);
-  res.json({ reply: result.response.text() });
+  try {
+    // ---> UPDATED TO LATEST MODEL <---
+    const botModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const result = await botModel.generateContent(req.body.message);
+    res.json({ reply: result.response.text() });
+  } catch (err) {
+    console.error("TechBot Crash:", err.message);
+    res.status(500).json({ error: "TechBot is currently experiencing issues. Please try again." });
+  }
 });
 
 server.listen(PORT, "0.0.0.0", () => console.log(`🚀 Nexus Server on port ${PORT}`));
