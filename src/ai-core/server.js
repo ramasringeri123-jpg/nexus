@@ -14,7 +14,8 @@ import mongoose from "mongoose";
 // --- MODELS (Fixed case sensitivity) ---
 import User from "./models/User.js";
 import Chat from "./models/chat.js"; // Fixed: Capital C to match filename
-import Reel from "./models/Reel.js"; 
+// Change this line in your src/ai-core/server.js
+import Reel from "./models/Reel.js"; // Use lowercase 'r' here
 
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
