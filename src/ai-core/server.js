@@ -12,9 +12,10 @@ import { Server } from "socket.io";
 import mongoose from "mongoose";
 
 // --- MODELS (Forced lowercase to fix Git/Render cache issue) ---
-import User from "./models/user.js";
-import Chat from "./models/chat.js"; 
-import Reel from "./models/reel.js"; 
+// --- MODELS (Renamed to nuke Git cache) ---
+import User from "./models/UserModel.js";
+import Chat from "./models/ChatModel.js"; 
+import Reel from "./models/ReelModel.js";
 
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
