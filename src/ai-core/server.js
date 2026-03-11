@@ -16,6 +16,7 @@ import User from "./models/UserModel.js";
 import Chat from "./models/ChatModel.js"; 
 import Reel from "./models/ReelModel.js";
 
+// --- AI WORKER FILES ---
 import { generateImage } from "./imageGenerator.js";
 import { generateVoice } from "./voiceGenerator.js";
 import { buildVideo } from "./videoBuilder.js";
@@ -27,7 +28,7 @@ const io = new Server(server, {
 });
 
 /* ===============================
-MIDDLEWARE & DB CONNECTION
+MIDDLEWARE & FILE SYSTEM
 =============================== */
 app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"], allowedHeaders: ["Content-Type", "Authorization"] }));
 app.use(express.json());
@@ -35,17 +36,31 @@ app.set("trust proxy", true);
 
 const PORT = process.env.PORT || 10000;
 
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/nexus")
-  .then(() => console.log("📦 Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 app.use("/videos", express.static(tempDir));
+
+/* ===============================
+CRASH-PROOF MONGODB CONNECTION
+=============================== */
+if (!process.env.MONGODB_URI) {
+  console.error("🚨 CRITICAL WARNING: MONGODB_URI is missing in Render Environment Variables!");
+  console.error("🚨 The server will start, but database features will fail.");
+} else {
+  mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log("📦 Connected to MongoDB"))
+    .catch((err) => console.error("❌ MongoDB connection error:", err.message));
+}
+
+/* ===============================
+GEMINI SETUP
+=============================== */
+if (!process.env.GEMINI_API_KEY) {
+  console.error("🚨 CRITICAL WARNING: GEMINI_API_KEY is missing!");
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /* ===============================
 WEBSOCKETS: REAL-TIME & TIME TRACKING
@@ -63,10 +78,10 @@ io.on("connection", (socket) => {
     const session = activeStudySessions.get(socket.id);
     if (session && session.userId) {
       const minutesSpent = Math.floor((Date.now() - session.startTime) / 60000);
-      if (minutesSpent > 0) {
+      if (minutesSpent > 0 && process.env.MONGODB_URI) {
         try {
           await User.findByIdAndUpdate(session.userId, { $inc: { totalMinutesStudied: minutesSpent } });
-        } catch (err) { console.error("Time tracking error:", err); }
+        } catch (err) { console.error("Time tracking error:", err.message); }
       }
     }
     activeStudySessions.delete(socket.id);
@@ -76,24 +91,56 @@ io.on("connection", (socket) => {
 
   socket.on("send_message", async (data) => {
     try {
-      await Chat.findByIdAndUpdate(data.chatId, {
-        $push: { messages: { sender: data.senderId, senderName: data.senderName, text: data.text } }
-      });
+      if (process.env.MONGODB_URI) {
+        await Chat.findByIdAndUpdate(data.chatId, {
+          $push: { messages: { sender: data.senderId, senderName: data.senderName, text: data.text } }
+        });
+      }
       io.to(data.chatId).emit("receive_message", data);
-    } catch (err) { console.error("Chat error:", err); }
+    } catch (err) { console.error("Chat error:", err.message); }
   });
+});
+
+/* ===============================
+RESTORED: IMAGE GENERATOR API
+=============================== */
+app.post("/generate-image", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Prompt is required" });
+    
+    // Calls your existing imageGenerator.js file
+    const imagePath = await generateImage(prompt, "custom"); 
+    res.json({ success: true, imagePath: `/videos/${path.basename(imagePath)}` });
+  } catch (err) {
+    console.error("Image Gen Error:", err.message);
+    res.status(500).json({ error: "Failed to generate image." });
+  }
+});
+
+/* ===============================
+RESTORED: USER REELS API
+=============================== */
+app.get("/reels", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!process.env.MONGODB_URI) return res.json([]); // Fail gracefully if no DB
+    
+    const filter = userId ? { author: userId } : {};
+    const userReels = await Reel.find(filter).sort({ createdAt: -1 });
+    res.json(userReels);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ===============================
 SOCIAL API: NETWORK & SEARCH
 =============================== */
-
-// SEARCH FRIENDS: Filter by name, state, or country
 app.get("/api/network/search", async (req, res) => {
   try {
     const { query, state, country } = req.query;
     let filter = {};
-
     if (query) {
       filter.$or = [
         { displayName: { $regex: query, $options: "i" } },
@@ -105,12 +152,9 @@ app.get("/api/network/search", async (req, res) => {
 
     const users = await User.find(filter).limit(20).select("displayName username avatar state country totalMinutesStudied");
     res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// SYNC FIREBASE USER
 app.post("/api/users/sync", async (req, res) => {
   try {
     const { firebaseUid, displayName, email } = req.body;
@@ -126,7 +170,6 @@ app.post("/api/users/sync", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET PROFILE
 app.get("/api/users/:uid", async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.params.uid });
@@ -141,9 +184,7 @@ GLOBAL REELS FEED
 =============================== */
 app.get("/api/global-reels", async (req, res) => {
   try {
-    const reels = await Reel.find({ isGlobal: true })
-      .populate("author", "displayName username avatar")
-      .sort({ createdAt: -1 });
+    const reels = await Reel.find({ isGlobal: true }).populate("author", "displayName username avatar").sort({ createdAt: -1 });
     res.json(reels);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -151,7 +192,6 @@ app.get("/api/global-reels", async (req, res) => {
 /* ===============================
 AI VIDEO PIPELINE
 =============================== */
-const videoUsage = {};
 const jobs = new Map();
 
 function cleanJSON(text) {
@@ -166,8 +206,7 @@ function cleanJSON(text) {
 async function processVideoInBackground(jobId, topic, baseUrl, userId) {
   try {
     jobs.set(jobId, { status: "processing", progress: "Writing AI script..." });
-    // ---> FIXED: CHANGED TO gemini-pro TO BYPASS CACHE <---
-    const scriptModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const scriptModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await scriptModel.generateContent(`Generate 6 scene educational script for ${topic} in JSON array with 'visual' and 'narration'. Total words 110-125.`);
     const scenes = cleanJSON(result.response.text());
 
@@ -182,7 +221,7 @@ async function processVideoInBackground(jobId, topic, baseUrl, userId) {
     const videoName = await buildVideo(images);
     const videoUrl = `${baseUrl}/videos/${videoName}`;
 
-    if (userId) {
+    if (userId && process.env.MONGODB_URI) {
       await Reel.create({ author: userId, title: topic, videoUrl, isGlobal: true });
     }
 
@@ -200,14 +239,12 @@ app.post("/generate-video", async (req, res) => {
 
 app.get("/job-status/:jobId", (req, res) => res.json(jobs.get(req.params.jobId) || { error: "Not found" }));
 
-
 /* ===============================
 TECHBOT
 =============================== */
 app.post("/techbot", async (req, res) => {
   try {
-    // ---> FIXED: CHANGED TO gemini-pro TO BYPASS CACHE <---
-    const botModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const botModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await botModel.generateContent(req.body.message);
     res.json({ reply: result.response.text() });
   } catch (err) {
@@ -216,4 +253,7 @@ app.post("/techbot", async (req, res) => {
   }
 });
 
+/* ===============================
+START SERVER
+=============================== */
 server.listen(PORT, "0.0.0.0", () => console.log(`🚀 Nexus Server on port ${PORT}`));
