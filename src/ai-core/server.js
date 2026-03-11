@@ -166,8 +166,8 @@ function cleanJSON(text) {
 async function processVideoInBackground(jobId, topic, baseUrl, userId) {
   try {
     jobs.set(jobId, { status: "processing", progress: "Writing AI script..." });
-    // ---> UPDATED TO LATEST MODEL <---
-    const scriptModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // ---> FIXED: CHANGED TO gemini-pro TO BYPASS CACHE <---
+    const scriptModel = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await scriptModel.generateContent(`Generate 6 scene educational script for ${topic} in JSON array with 'visual' and 'narration'. Total words 110-125.`);
     const scenes = cleanJSON(result.response.text());
 
@@ -206,8 +206,8 @@ TECHBOT
 =============================== */
 app.post("/techbot", async (req, res) => {
   try {
-    // ---> UPDATED TO LATEST MODEL <---
-    const botModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // ---> FIXED: CHANGED TO gemini-pro TO BYPASS CACHE <---
+    const botModel = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await botModel.generateContent(req.body.message);
     res.json({ reply: result.response.text() });
   } catch (err) {
