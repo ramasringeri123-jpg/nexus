@@ -240,16 +240,28 @@ app.post("/generate-video", async (req, res) => {
 app.get("/job-status/:jobId", (req, res) => res.json(jobs.get(req.params.jobId) || { error: "Not found" }));
 
 /* ===============================
-TECHBOT
+TECHBOT (WITH AUTO-FALLBACK)
 =============================== */
 app.post("/techbot", async (req, res) => {
   try {
-    const botModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Attempt 1: Try the absolute newest model
+    const botModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await botModel.generateContent(req.body.message);
     res.json({ reply: result.response.text() });
-  } catch (err) {
-    console.error("TechBot Crash:", err.message);
-    res.status(500).json({ error: "TechBot is currently experiencing issues. Please try again." });
+    
+  } catch (primaryErr) {
+    console.warn("⚠️ Primary model failed. Attempting fallback...");
+    
+    try {
+      // Attempt 2: Auto-fallback to the ultra-stable version
+      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const fallbackResult = await fallbackModel.generateContent(req.body.message);
+      res.json({ reply: fallbackResult.response.text() });
+      
+    } catch (fallbackErr) {
+      console.error("❌ TechBot Crash (Both models failed):", fallbackErr.message);
+      res.status(500).json({ error: "TechBot is resting right now. Please try again later." });
+    }
   }
 });
 
