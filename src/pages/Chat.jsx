@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { io } from "socket.io-client";
+
+// Connect to your live Render backend (or localhost if testing locally)
+const SOCKET_URL = import.meta.env.VITE_API_URL || "https://nexus-api-q4u2.onrender.com";
+const socket = io(SOCKET_URL);
 
 export default function Chat() {
   const [activeChat, setActiveChat] = useState("general");
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Mock Conversations (Left Sidebar) - Will fetch from MongoDB later
+  // MOCK USER: Replace this later with your real Firebase logged-in user!
+  const currentUser = { id: "me", name: "You" };
+
+  // Conversations List
   const conversations = [
     { id: "general", name: "Global Study Lounge", type: "group", avatar: "🌍", unread: 0 },
     { id: "cs101", name: "CS 101 Group", type: "group", avatar: "💻", unread: 3 },
@@ -14,53 +22,71 @@ export default function Chat() {
     { id: "user2", name: "Alex Johnson", type: "direct", avatar: "🧑", unread: 0 },
   ];
 
-  // Mock Messages (Right Panel) - Will fetch from MongoDB later
   const [messages, setMessages] = useState([
-    { id: 1, senderId: "user2", senderName: "Alex Johnson", text: "Hey! Did anyone understand the physics lecture today?", time: "10:30 AM", isMe: false },
-    { id: 2, senderId: "me", senderName: "You", text: "Not really, I generated a Study Reel about it though, it helped a lot.", time: "10:32 AM", isMe: true },
-    { id: 3, senderId: "user1", senderName: "Priya Patel", text: "Can you share the link to that reel?", time: "10:35 AM", isMe: false },
+    { id: 1, senderId: "user2", senderName: "Alex Johnson", text: "Welcome to the real-time chat! Try sending a message.", time: "10:30 AM", isMe: false }
   ]);
+
+  // --- REAL-TIME WEBSOCKET LOGIC ---
+  useEffect(() => {
+    // 1. Tell the server we entered this specific chat room
+    socket.emit("join_chat", activeChat);
+
+    // 2. Listen for incoming messages from the server
+    const handleReceiveMessage = (data) => {
+      if (data.chatId === activeChat) {
+        setMessages((prev) => [...prev, {
+          id: Date.now(),
+          senderId: data.senderId,
+          senderName: data.senderName,
+          text: data.text,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isMe: data.senderId === currentUser.id
+        }]);
+      }
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+
+    // 3. Cleanup listener when leaving the room
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+    };
+  }, [activeChat]);
 
   // Auto-scroll to the newest message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
+  // --- SEND MESSAGE FUNCTION ---
   const sendMessage = (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    // Add message to UI instantly
-    setMessages([...messages, {
-      id: Date.now(),
-      senderId: "me",
-      senderName: "You",
-      text: message,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
-    }]);
-    
+    const messageData = {
+      chatId: activeChat,
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      text: message
+    };
+
+    // Shoot the message directly to the backend
+    socket.emit("send_message", messageData);
     setMessage("");
-    // In Phase 3, we will emit this message to Socket.io here!
   };
 
-  // Find the currently active chat details
   const currentChatDetails = conversations.find(c => c.id === activeChat) || conversations[0];
 
   return (
     <div className="min-h-screen pt-24 pb-8 px-4 max-w-7xl mx-auto flex flex-col">
-      
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">Messages</h1>
           <p className="text-slate-400 text-sm">Connect with friends and study groups.</p>
         </div>
-        <Link to="/dashboard/network" className="btn bg-slate-800 hover:bg-slate-700 text-white border border-white/10">
+        <Link to="/dashboard/network" className="btn bg-slate-800 hover:bg-slate-700 text-white border border-white/10 px-4 py-2 rounded-lg">
           + Find Friends
         </Link>
       </div>
@@ -68,10 +94,8 @@ export default function Chat() {
       {/* Main Chat Container */}
       <div className="flex-1 flex bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden shadow-2xl h-[70vh] min-h-[500px]">
         
-        {/* --- LEFT SIDEBAR (Chats List) --- */}
+        {/* --- LEFT SIDEBAR --- */}
         <div className="w-1/3 max-w-[320px] bg-[#020617]/50 border-r border-white/5 flex flex-col hidden md:flex">
-          
-          {/* Search */}
           <div className="p-4 border-b border-white/5">
             <input 
               type="text" 
@@ -80,16 +104,13 @@ export default function Chat() {
             />
           </div>
 
-          {/* Conversation List */}
           <div className="flex-1 overflow-y-auto p-3 space-y-1 hide-scrollbar">
             {conversations.map(chat => (
               <button 
                 key={chat.id}
                 onClick={() => setActiveChat(chat.id)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group ${
-                  activeChat === chat.id 
-                    ? "bg-indigo-600/20 border-indigo-500/30" 
-                    : "hover:bg-white/5 border-transparent"
+                  activeChat === chat.id ? "bg-indigo-600/20 border-indigo-500/30" : "hover:bg-white/5 border-transparent"
                 } border`}
               >
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 shadow-inner ${
@@ -103,17 +124,12 @@ export default function Chat() {
                     {chat.unread > 0 ? 'New message received' : 'Click to view chat...'}
                   </p>
                 </div>
-                {chat.unread > 0 && (
-                  <div className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.5)]">
-                    {chat.unread}
-                  </div>
-                )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* --- RIGHT PANEL (Active Chat) --- */}
+        {/* --- RIGHT PANEL --- */}
         <div className="flex-1 bg-[#020617] flex flex-col relative">
           
           {/* Chat Header */}
@@ -125,25 +141,12 @@ export default function Chat() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-white">{currentChatDetails.name}</h2>
-                  {currentChatDetails.type === 'group' && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">Group</span>
-                  )}
                 </div>
                 <div className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  {currentChatDetails.type === 'group' ? '124 Online' : 'Online'}
+                  Online
                 </div>
               </div>
-            </div>
-            
-            {/* Header Actions */}
-            <div className="flex gap-3">
-              <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
-                📞
-              </button>
-              <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
-                ℹ️
-              </button>
             </div>
           </div>
 
@@ -172,9 +175,6 @@ export default function Chat() {
           {/* Input Area */}
           <div className="p-4 bg-slate-900/50 backdrop-blur-md border-t border-white/5">
             <form onSubmit={sendMessage} className="flex gap-3 items-center">
-              <button type="button" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors shrink-0">
-                📎
-              </button>
               <input 
                 type="text" 
                 value={message}
