@@ -17,25 +17,21 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // We will replace 'mock_uid_123' with your actual Firebase User ID when we wire up Login!
     const currentUserId = localStorage.getItem("firebaseUid") || "mock_uid_123"; 
 
     const fetchRealData = async () => {
       try {
-        // 1. Fetch User Profile (For Study Hours and Name)
         const userRes = await fetch(`${API_URL}/api/users/${currentUserId}`);
         if (userRes.ok) {
           const userData = await userRes.json();
           setProfile(userData);
         }
 
-        // 2. Fetch User's Created Reels
         const reelsRes = await fetch(`${API_URL}/reels?userId=${currentUserId}`);
         if (reelsRes.ok) {
           const reelsData = await reelsRes.json();
           setStats(prev => ({ ...prev, reelsCount: reelsData.length }));
         }
-
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       } finally {
@@ -100,6 +96,7 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl mb-4">🎬</div>
           <h3 className="text-lg font-bold text-white mb-2">Study Reels Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate AI micro-lessons tailored to your syllabus.</p>
+          {/* 👇 LINK 1: STUDY REELS */}
           <Link to="/dashboard/reels" className="text-indigo-400 font-medium text-sm hover:text-indigo-300">Launch tool →</Link>
         </div>
 
@@ -107,6 +104,7 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-2xl mb-4">🌍</div>
           <h3 className="text-lg font-bold text-white mb-2">Global Feed</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Watch and learn from Reels published by students all over the world.</p>
+          {/* 👇 LINK 2: GLOBAL FEED */}
           <Link to="/dashboard/feed" className="text-blue-400 font-medium text-sm hover:text-blue-300">Watch now →</Link>
         </div>
 
@@ -114,6 +112,7 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-4">🤝</div>
           <h3 className="text-lg font-bold text-white mb-2">Student Network</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Find friends, compare study hours, and connect with peers.</p>
+          {/* 👇 LINK 3: STUDENT NETWORK (This one works!) */}
           <Link to="/dashboard/network" className="text-emerald-400 font-medium text-sm hover:text-emerald-300">Find friends →</Link>
         </div>
 
@@ -121,6 +120,7 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl mb-4">🖼️</div>
           <h3 className="text-lg font-bold text-white mb-2">Visual Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate complex diagrams, charts, and visual mind maps instantly.</p>
+          {/* 👇 LINK 4: VISUAL GENERATOR */}
           <Link to="/dashboard/visuals" className="text-purple-400 font-medium text-sm hover:text-purple-300">Launch tool →</Link>
         </div>
 
