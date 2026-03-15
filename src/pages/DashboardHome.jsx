@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://nexus-api-q4u2.onrender.com";
 
-export default function Dashboard() {
+export default function DashboardHome() {
   const [profile, setProfile] = useState({
     displayName: "Student",
     exactHoursStudied: 0,
@@ -96,23 +96,23 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl mb-4">🎬</div>
           <h3 className="text-lg font-bold text-white mb-2">Study Reels Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate AI micro-lessons tailored to your syllabus.</p>
-          {/* 👇 LINK 1: STUDY REELS */}
-          <Link to="/dashboard/reels" className="text-indigo-400 font-medium text-sm hover:text-indigo-300">Launch tool →</Link>
+          {/* 👇 FIXED LINK: Matches StudyReels.jsx */}
+          <Link to="/dashboard/study-reels" className="text-indigo-400 font-medium text-sm hover:text-indigo-300">Launch tool →</Link>
         </div>
 
         <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-blue-500/50 transition-colors flex flex-col">
           <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-2xl mb-4">🌍</div>
           <h3 className="text-lg font-bold text-white mb-2">Global Feed</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Watch and learn from Reels published by students all over the world.</p>
-          {/* 👇 LINK 2: GLOBAL FEED */}
-          <Link to="/dashboard/feed" className="text-blue-400 font-medium text-sm hover:text-blue-300">Watch now →</Link>
+          {/* 👇 FIXED LINK: Matches GlobalReels.jsx */}
+          <Link to="/dashboard/global-reels" className="text-blue-400 font-medium text-sm hover:text-blue-300">Watch now →</Link>
         </div>
 
         <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-emerald-500/50 transition-colors flex flex-col">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-4">🤝</div>
           <h3 className="text-lg font-bold text-white mb-2">Student Network</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Find friends, compare study hours, and connect with peers.</p>
-          {/* 👇 LINK 3: STUDENT NETWORK (This one works!) */}
+          {/* 👇 NETWORK LINK (Already worked) */}
           <Link to="/dashboard/network" className="text-emerald-400 font-medium text-sm hover:text-emerald-300">Find friends →</Link>
         </div>
 
@@ -120,8 +120,8 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl mb-4">🖼️</div>
           <h3 className="text-lg font-bold text-white mb-2">Visual Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate complex diagrams, charts, and visual mind maps instantly.</p>
-          {/* 👇 LINK 4: VISUAL GENERATOR */}
-          <Link to="/dashboard/visuals" className="text-purple-400 font-medium text-sm hover:text-purple-300">Launch tool →</Link>
+          {/* 👇 FIXED LINK: Matches ImageGenerator.jsx */}
+          <Link to="/dashboard/image-generator" className="text-purple-400 font-medium text-sm hover:text-purple-300">Launch tool →</Link>
         </div>
 
       </div>
