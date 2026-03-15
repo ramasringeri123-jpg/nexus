@@ -1,133 +1,130 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-export default function DashboardHome() {
+const API_URL = import.meta.env.VITE_API_URL || "https://nexus-api-q4u2.onrender.com";
+
+export default function Dashboard() {
+  const [profile, setProfile] = useState({
+    displayName: "Student",
+    exactHoursStudied: 0,
+    totalMinutesStudied: 0
+  });
+  const [stats, setStats] = useState({
+    reelsCount: 0,
+    imagesCount: 0, 
+    questionsCount: 0 
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // We will replace 'mock_uid_123' with your actual Firebase User ID when we wire up Login!
+    const currentUserId = localStorage.getItem("firebaseUid") || "mock_uid_123"; 
+
+    const fetchRealData = async () => {
+      try {
+        // 1. Fetch User Profile (For Study Hours and Name)
+        const userRes = await fetch(`${API_URL}/api/users/${currentUserId}`);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setProfile(userData);
+        }
+
+        // 2. Fetch User's Created Reels
+        const reelsRes = await fetch(`${API_URL}/reels?userId=${currentUserId}`);
+        if (reelsRes.ok) {
+          const reelsData = await reelsRes.json();
+          setStats(prev => ({ ...prev, reelsCount: reelsData.length }));
+        }
+
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRealData();
+  }, []);
+
   return (
-    <div className="min-h-screen pt-20 pb-10 px-4 md:px-8 max-w-7xl mx-auto">
+    <div className="min-h-screen pt-24 pb-8 px-4 max-w-7xl mx-auto flex flex-col">
       
-      {/* --- DASHBOARD HEADER --- */}
-      <header className="mb-10 animate-fade-in flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Welcome Header */}
+      <div className="flex justify-between items-start mb-10">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Student</span> 👋
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Welcome back,<br/>
+            <span className="text-indigo-400">{profile.displayName} 👋</span>
           </h1>
           <p className="text-slate-400">Ready to crush your study goals today? Select a tool below to get started.</p>
         </div>
-        
-        {/* Upgrade Button */}
-        <Link to="/premium" className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-          <span className="text-xl">👑</span> Upgrade to Pro
-        </Link>
-      </header>
-
-      {/* --- QUICK STATS / OVERVIEW --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        {[
-          { label: "Study Reels Watched", value: "12", color: "text-indigo-400" },
-          { label: "Images Generated", value: "24", color: "text-purple-400" },
-          { label: "Questions Asked", value: "89", color: "text-pink-400" },
-          { label: "Current Streak", value: "5 Days", color: "text-emerald-400" }
-        ].map((stat, i) => (
-          <div key={i} className="card !padding-6 flex flex-col justify-center items-center text-center !p-6">
-            <span className={`text-3xl font-bold mb-1 ${stat.color}`}>{stat.value}</span>
-            <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{stat.label}</span>
-          </div>
-        ))}
+        <button className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white font-bold py-3 px-8 rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all">
+          👑 Upgrade to Pro
+        </button>
       </div>
 
-      {/* --- AI & SOCIAL TOOLKIT GRID --- */}
-      <h2 className="text-xl font-bold text-white mb-4">Your AI & Social Toolkit</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      {/* Real-time Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center shadow-lg">
+          <div className="text-3xl font-bold text-indigo-400 mb-1">
+            {loading ? "..." : stats.reelsCount}
+          </div>
+          <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Study Reels Created</div>
+        </div>
         
-        {/* Tool 1: Study Reels */}
-        <Link to="/dashboard/study-reels" className="card group hover:border-indigo-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
-            <span className="text-2xl">🎬</span>
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center shadow-lg">
+          <div className="text-3xl font-bold text-purple-400 mb-1">
+            {loading ? "..." : profile.exactHoursStudied || 0}
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Study Reels Generator</h3>
-          <p className="text-sm text-slate-400 mb-6 flex-1">Swipe through AI-generated micro-lessons tailored to your syllabus.</p>
-          <span className="text-indigo-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
-            Launch tool &rarr;
-          </span>
-        </Link>
+          <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Hours Studied</div>
+        </div>
+        
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center shadow-lg">
+          <div className="text-3xl font-bold text-emerald-400 mb-1">
+            {loading ? "..." : stats.questionsCount}
+          </div>
+          <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Questions Asked</div>
+        </div>
+        
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center shadow-lg">
+          <div className="text-3xl font-bold text-emerald-400 mb-1">0 Days</div>
+          <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Current Streak</div>
+        </div>
+      </div>
 
-        {/* Tool 2: Global Reels (NEW) */}
-        <Link to="/dashboard/global-reels" className="card group hover:border-blue-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
-            <span className="text-2xl">🌍</span>
-          </div>
+      {/* Tools Section */}
+      <h2 className="text-xl font-bold text-white mb-6">Your AI & Social Toolkit</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-indigo-500/50 transition-colors flex flex-col">
+          <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl mb-4">🎬</div>
+          <h3 className="text-lg font-bold text-white mb-2">Study Reels Generator</h3>
+          <p className="text-sm text-slate-400 mb-6 flex-1">Generate AI micro-lessons tailored to your syllabus.</p>
+          <Link to="/dashboard/reels" className="text-indigo-400 font-medium text-sm hover:text-indigo-300">Launch tool →</Link>
+        </div>
+
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-blue-500/50 transition-colors flex flex-col">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-2xl mb-4">🌍</div>
           <h3 className="text-lg font-bold text-white mb-2">Global Feed</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Watch and learn from Reels published by students all over the world.</p>
-          <span className="text-blue-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
-            Watch now &rarr;
-          </span>
-        </Link>
+          <Link to="/dashboard/feed" className="text-blue-400 font-medium text-sm hover:text-blue-300">Watch now →</Link>
+        </div>
 
-        {/* Tool 3: Student Network (NEW) */}
-        <Link to="/dashboard/network" className="card group hover:border-emerald-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
-            <span className="text-2xl">🤝</span>
-          </div>
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-emerald-500/50 transition-colors flex flex-col">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-4">🤝</div>
           <h3 className="text-lg font-bold text-white mb-2">Student Network</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Find friends, compare study hours, and connect with peers.</p>
-          <span className="text-emerald-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
-            Find friends &rarr;
-          </span>
-        </Link>
+          <Link to="/dashboard/network" className="text-emerald-400 font-medium text-sm hover:text-emerald-300">Find friends →</Link>
+        </div>
 
-        {/* Tool 4: Image Generator */}
-        <Link to="/dashboard/image-generator" className="card group hover:border-purple-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4">
-            <span className="text-2xl">🖼️</span>
-          </div>
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-purple-500/50 transition-colors flex flex-col">
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl mb-4">🖼️</div>
           <h3 className="text-lg font-bold text-white mb-2">Visual Generator</h3>
           <p className="text-sm text-slate-400 mb-6 flex-1">Generate complex diagrams, charts, and visual mind maps instantly.</p>
-          <span className="text-purple-400 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
-            Launch tool &rarr;
-          </span>
-        </Link>
-
-        {/* Tool 5: Global TechBot / Chat */}
-        <div className="card group hover:border-pink-500/50 transition-all duration-300 flex flex-col h-full relative overflow-hidden lg:col-span-2">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center mb-4">
-            <span className="text-2xl">🤖</span>
-          </div>
-          <h3 className="text-lg font-bold text-white mb-2">TechBot Assistant</h3>
-          <p className="text-sm text-slate-400 mb-6 flex-1">Your floating AI tutor is always active. Check the bottom corner of your screen to ask a question anytime!</p>
-          <span className="text-pink-400 text-sm font-semibold flex items-center gap-1">
-            Active Globally <span className="relative flex h-3 w-3 ml-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span></span>
-          </span>
+          <Link to="/dashboard/visuals" className="text-purple-400 font-medium text-sm hover:text-purple-300">Launch tool →</Link>
         </div>
 
       </div>
-
-      {/* --- RECENT ACTIVITY SECTION --- */}
-      <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
-      <div className="card !p-0 overflow-hidden">
-        <ul className="divide-y divide-white/5">
-          {[
-            { action: "Generated a diagram for", subject: "Cellular Mitosis", time: "2 hours ago" },
-            { action: "Connected with", subject: "@priyap", time: "5 hours ago" },
-            { action: "Watched a Study Reel on", subject: "Quantum Computing Basics", time: "Yesterday" },
-            { action: "Asked TechBot about", subject: "Python Array Methods", time: "2 days ago" },
-          ].map((item, i) => (
-            <li key={i} className="p-4 md:p-6 hover:bg-white/[0.02] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                <p className="text-slate-300 text-sm md:text-base">
-                  <span className="text-slate-500">{item.action}</span> <strong className="text-white font-medium">{item.subject}</strong>
-                </p>
-              </div>
-              <span className="text-xs text-slate-500 ml-5 md:ml-0">{item.time}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
     </div>
   );
 }
