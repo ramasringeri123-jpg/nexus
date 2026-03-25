@@ -11,7 +11,7 @@ export default function ReelLibrary() {
 
     try {
 
-      const res = await fetch("http://localhost:5000/reels");
+      const res = await fetch("https://nexus-api-q4u2.onrender.com");
       const data = await res.json();
 
       if (data.reels && data.reels.length > 0) {
